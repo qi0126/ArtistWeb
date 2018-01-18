@@ -54,6 +54,10 @@ export default new Router({
           redirect: '/index/production'
         },
         {
+          path: 'production',
+          component: Production
+        },
+        {
           path: 'sellOrder',
           component: SellOrder
         },
@@ -64,10 +68,6 @@ export default new Router({
         {
           path: 'historyOrder',
           component: HistoryOrder
-        },
-        {
-          path: 'production',
-          component: Production
         },
         {
           path: 'addProduction',

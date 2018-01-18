@@ -72,8 +72,8 @@
                           <div class="parent">
                             <el-radio v-model="cate_checked" :label="cate.id">{{cate.categoryName}}</el-radio>
                           </div>
-                          <div class="child" v-show="cate.children != undefined">
-                            【 <el-radio v-model="cate_checked" class="childText" :label="catesub.id" v-for="catesub in cate.children" :key="catesub.id">{{ catesub.categoryName }}</el-radio> 】
+                          <div class="child" v-show="cate.categoryList.length != 0">
+                            【 <el-radio v-model="cate_checked" class="childText" :label="catesub.id" v-for="catesub in cate.categoryList" :key="catesub.id">{{ catesub.categoryName }}</el-radio> 】
                           </div>
                       </div>
                 </div>
@@ -111,54 +111,61 @@ export default {
         .then(data => {
           if (data.data.code == 0) {
             self.categoryData = data.data.data;
-            var data = data.data.data,
-              tree = (function(data, root) {
-                var r,
-                  o = {};
-                var temp_data = [];
-                data.forEach(function(a) {
-                  a.children = o[a.id] && o[a.id].children;
-                  o[a.id] = a;
-                  if (a.parentId == 0) {
-                    r = a;
-                    temp_data.push(a);
-                  } else {
-                    o[a.parentId] = o[a.parentId] || {};
-                    o[a.parentId].children = o[a.parentId].children || [];
-                    o[a.parentId].children.push(a);
+            self.allCategory = data.data.data;
+            //文字推广内容渲染
+            this.Axios
+              .get("/promotion/generalizeText")
+              .then(data => {
+                if (data.data.code == 0) {
+                  //开启属性
+                  if (data.data.data.length != 0) {
+                    self.textData = data.data.data;
+                    self.open_tf = self.textData[0].isOpen;
+                    for (var i = 0; i < self.textData.length; i++) {
+                      self.textData[i].isShow = self.textData[
+                        i
+                      ].isShow.toString();
+                      //遍历推广类别
+                      for (var j = 0; j < self.categoryData.length; j++) {
+                        //一级推广类别
+                        if (
+                          self.textData[i].categoryId == self.categoryData[j].id
+                        ) {
+                          self.textData[i].categoryName =
+                            self.categoryData[j].categoryName;
+                          break;
+                        }
+                        //二级推广类别
+                        if (self.categoryData[j].categoryList.length != 0) {
+                          for (
+                            var k = 0;
+                            k < self.categoryData[j].categoryList.length;
+                            k++
+                          ) {
+                            if (
+                              self.textData[i].categoryId ==
+                              self.categoryData[j].categoryList[k].id
+                            ) {
+                              self.textData[i].categoryName =
+                                self.categoryData[j].categoryList[
+                                  k
+                                ].categoryName;
+                              break;
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                });
-                return temp_data;
-              })(data, null);
-            self.allCategory = tree;
+                }
+              })
+              .catch(err => {
+                this.extCatch(err, this.created_fun);
+              });
           }
         })
         .catch(err => {
           this.extCatch(err, this.create_fun);
-        });
-      //文字推广内容渲染
-      this.Axios
-        .get("/promotion/generalizeText")
-        .then(data => {
-          if (data.data.code == 0) {
-            //开启属性
-            if (data.data.data.length != 0) {
-              self.textData = data.data.data;
-              self.open_tf = self.textData[0].isOpen;
-              for (var i = 0; i < self.textData.length; i++) {
-                self.textData[i].isShow = self.textData[i].isShow.toString();
-                for (var j = 0; j < self.categoryData.length; j++) {
-                  if (self.textData[i].categoryId == self.categoryData[j].id) {
-                    self.textData[i].categoryName =
-                      self.categoryData[j].categoryName;
-                  }
-                }
-              }
-            }
-          }
-        })
-        .catch(err => {
-          this.extCatch(err, this.created_fun);
         });
     },
     //开启文字推广事件

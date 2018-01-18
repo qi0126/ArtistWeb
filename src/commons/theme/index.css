@@ -3453,10 +3453,12 @@
     .el-pager li.active + li {
       border-left: 0; }
     .el-pager li:hover {
-      color: #e60e32; }
+      color: #e60e32 !important; }
     .el-pager li.active {
-      color: #e60e32;
+      background: #e60e32 !important;
       cursor: default; }
+    .el-pager li.active:hover {
+      color: white !important }
 
 /* BEM support Func
  -------------------------- */

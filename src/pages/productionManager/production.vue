@@ -21,9 +21,9 @@
         <el-select v-model="selKind" size="small" placeholder="请选择" class="searchKind">
           <el-option
             v-for="item in kinds"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value">
+            :key="item.id"
+            :label="item.className"
+            :value="item.id">
           </el-option>
         </el-select>
 
@@ -45,7 +45,7 @@
           placeholder="开始时间"
           align="right"
           size="small"
-          :picker-options="shortcutsOptions">
+          :picker-options="$store.state.pickerOptions">
         </el-date-picker>
         <span class="spe">至</span>
         <el-date-picker
@@ -55,17 +55,17 @@
           placeholder="结束时间"
           align="right"
           size="small"
-          :picker-options="shortcutsOptions">
+          :picker-options="$store.state.pickerOptions">
         </el-date-picker>
 
       </div>
       <div class="options">
-        <el-button size="small" plain @click="batchAddKindDialog = true" icon="el-icon-plus">批量添加到推广类别</el-button>
+        <el-button size="small" plain @click="batchAddKindDialog = true" icon="el-icon-plus" :disabled="batchDelDisabled">批量添加到推广类别</el-button>
+        <el-button size="small" plain @click="upAndDownDialog = true" icon="el-icon-sort" :disabled="batchDelDisabled">批量上下架</el-button>
+        <!-- <el-button size="small" plain @click="tsDialog = true" icon="el-icon-upload2" :disabled="batchDelDisabled">产品推送</el-button> -->
         <el-button size="small" plain @click="setWaterMaskDialog = true" icon="el-icon-picture-outline">设置图片水印</el-button>
-        <el-button size="small" plain @click="upAndDownDialog = true" icon="el-icon-sort">批量上下架</el-button>
         <el-button size="small" plain @click="newProSettingDialog = true" icon="el-icon-date">设置新品时间</el-button>
-        <el-button size="small" plain @click="jsDialog = true" icon="el-icon-sold-out">产品接收</el-button>
-        <el-button size="small" plain @click="tsDialog = true" icon="el-icon-upload2">产品推送</el-button>
+        <!-- <el-button size="small" plain @click="jsDialog = true" icon="el-icon-sold-out">产品接收</el-button> -->
         <el-button size="small" plain icon="el-icon-refresh">更新产品</el-button>
         <el-button type="danger" size="small" icon="el-icon-delete" :disabled="batchDelDisabled" @click="batchDel">批量删除</el-button>
       </div>
@@ -90,59 +90,64 @@
           label="匹配图"
           width="120">
           <template slot-scope="scope">
-            <img v-if="!scope.row.headImage || scope.row.headImage == ''" src="static/imgs/syBg.png" alt="暂无图片" class="proImg">
-            <div v-else class="proImgWrapper">
-              <img :src="scope.row.headImage" alt="暂无图片" class="proImg bt-hover" @click="showMore">
-              <span class="totalText">共2张</span>
+            <div class="proImgWrapper">
+              <img
+                v-if="!scope.row.headImage || scope.row.headImage == ''"
+                src="static/imgs/syBg.png"
+                alt="暂无图片"
+                @click="showMore(scope.row.id)"
+                class="proImg bt-hover">
+              <img
+                v-else
+                :src="fileAddress + scope.row.headImage"
+                alt="暂无图片"
+                class="proImg bt-hover"
+                @click="showMore(scope.row.id)">
+              <span class="totalText">共{{ scope.row.imageCount }}张</span>
             </div>
           </template>
         </el-table-column>
         <el-table-column
           align="center"
           label="产品名称"
-          prop="productName"
-          width="180">
+          prop="productName">
         </el-table-column>
         <el-table-column
           align="center"
           label="产品品类"
-          prop="productClassName"
-          width="200">
+          prop="productClassName">
         </el-table-column>
         <el-table-column
           align="center"
           label="产品编号"
-          prop="productNumber"
-          width="220">
+          prop="productNumber">
         </el-table-column>
         <el-table-column
           align="center"
           sortable
           label="创建时间"
-          prop="putawayTime"
-          width="220">
+          prop="putawayTime">
         </el-table-column>
         <el-table-column
           align="center"
-          label="产品状态"
-          width="200">
+          label="产品状态">
           <template slot-scope="scope">
             <span v-if="scope.row.productStatus == 0">待处理</span>
             <span v-else-if="scope.row.productStatus == 1">已上架</span>
-            <span v-else-if="scope.row.productStatus == 2">已下架</span>
+            <span v-else-if="scope.row.productStatus == 2" class="down">已下架</span>
           </template>
         </el-table-column>
         <el-table-column
           align="center"
-          fixed="right"
-          width="433"
+          width="380"
           label="操作">
           <template slot-scope="scope">
             <div class="proOptions">
-              <el-button type="primary" size="small" icon="" plain>上架</el-button>
-              <el-button type="primary" size="small" icon="el-icon-edit-outline" plain>编辑</el-button>
-              <el-button type="primary" size="small" icon="el-icon-setting" plain>设为新品</el-button>
-              <el-button type="danger" size="small" icon="el-icon-delete">删除</el-button>
+              <el-button type="primary" size="small" icon="" plain v-if="scope.row.productStatus == 1" @click="downConfirm(scope.row.id)">下架</el-button>
+              <el-button type="primary" size="small" icon="" plain v-if="scope.row.productStatus == 2" @click="upConfirm(scope.row.id)">上架</el-button>
+              <el-button type="primary" size="small" icon="el-icon-edit-outline" plain @click="editPro(scope.row.id)">编辑</el-button>
+              <el-button type="primary" size="small" icon="el-icon-setting" plain @click="settingNewPro(scope.row.id)">设为新品</el-button>
+              <el-button type="danger" size="small" icon="el-icon-delete" @click="delSinglePro(scope.row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -151,6 +156,7 @@
 
     <div class="pageWrapper" v-show="pagerStatus">
       <el-pagination
+        background
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
         :current-page="currentPage"
@@ -165,14 +171,14 @@
       <el-dialog
         title="批量添加到推广类别"
         :visible.sync="batchAddKindDialog"
-        width="30%">
-        <div>
-          <el-radio v-model="r1" label="上海"></el-radio>
-          【 <el-radio-group v-model="r1">
-            <el-radio label="北京"></el-radio>
-            <el-radio label="广州"></el-radio>
-            <el-radio label="深圳"></el-radio>】
-          </el-radio-group> 】
+        width="50%">
+        <div class="batchAddKindElem">
+          <div class="item" v-for="(item,index) in allPromotions" :key="index">
+            <el-checkbox-group v-model="selPromotions[index]" :max="1">
+              <el-checkbox :label="item.id">{{ item.categoryName }}</el-checkbox>【
+              <el-checkbox v-for="(child,childIndex) in item.categoryList" :key="childIndex" :label="child.id" class="childCheckbox">{{ child.categoryName }}</el-checkbox>
+            </el-checkbox-group>
+          </div>
         </div>
         <span slot="footer" class="dialog-footer">
           <el-button @click="batchAddKindDialog = false" icon="">取 消</el-button>
@@ -223,8 +229,8 @@
         title="批量上下架"
         :visible.sync="upAndDownDialog"
         width="30%">
-        <el-radio v-model="upAndDown" label="1">上架</el-radio>
-        <el-radio v-model="upAndDown" label="2">下架</el-radio>
+        <el-radio v-model="upAndDown" :label="1">上架</el-radio>
+        <el-radio v-model="upAndDown" :label="2">下架</el-radio>
         <span slot="footer" class="dialog-footer">
           <el-button @click="upAndDownDialog = false">取 消</el-button>
           <el-button type="primary" @click="upAndDownConfirm">确 定</el-button>
@@ -235,9 +241,9 @@
         title="新品显示时间设置"
         :visible.sync="newProSettingDialog"
         width="30%">
-        <el-radio v-model="newProSetting" label="7">7天</el-radio>
-        <el-radio v-model="newProSetting" label="15">15天</el-radio>
-        <el-radio v-model="newProSetting" label="30">30天</el-radio>
+        <el-radio v-model="newProSetting" :label="7">7天</el-radio>
+        <el-radio v-model="newProSetting" :label="15">15天</el-radio>
+        <el-radio v-model="newProSetting" :label="30">30天</el-radio>
         <span slot="footer" class="dialog-footer">
           <el-button @click="newProSettingDialog = false">取 消</el-button>
           <el-button type="primary" @click="newProSettingConfirm">确 定</el-button>
@@ -250,17 +256,23 @@
         width="50%">
         <div class="previewImg">
           <div class="topWrapper">
-            <el-button type="primary" size="small" icon="el-icon-upload" plain>上传图片</el-button>
-            <el-button type="danger" size="small" icon="el-icon-delete">批量删除</el-button>
+            <input type="file" hidden id="puloadImgFile" @change="uploadImgChange" ref="fileInput">
+            <el-button type="primary" size="small" icon="el-icon-upload" plain onClick="puloadImgFile.click()">上传图片</el-button>
+            <!-- <el-button type="danger" size="small" icon="el-icon-delete">批量删除</el-button> -->
           </div>
           <div class="contentWrapper">
-            <draggable v-model="previewImgs" :move="getdata" @update="datadragEnd">
-              <transition-group class="draggableSpan">
-                <div class="draggableItem" v-for="element in previewImgs" :key="element.id">
-                  <img :src="element.imgSrc">
+            <!-- <draggable v-model="proDetails.imageList" :move="getdata" @update="datadragEnd">
+              <transition-group class="draggableSpan"> -->
+                <div
+                  class="draggableItem"
+                  v-for="element in proDetails.imageList"
+                  @mouseover="selImg = element"
+                  @mouseout="selImg = null">
+                  <img :src="fileAddress + element.imageUrl">
+                  <i class="el-icon-circle-close-outline delIcon bt-hover" v-show="selImg == element" @click="delPreImg(element.imageUrl)"></i>
                 </div>
-              </transition-group>
-            </draggable>
+              <!-- </transition-group>
+            </draggable> -->
           </div>
         </div>
       </el-dialog>
@@ -271,13 +283,13 @@
         width="30%">
         <div class="tsWrapper">
           <div class="checkBoxPlace">
-            <el-checkbox-group v-model="checkList">
+            <el-checkbox-group v-model="selCompany">
               <el-checkbox label="和合百泰"></el-checkbox>
               <el-checkbox label="金百泰"></el-checkbox>
             </el-checkbox-group>
           </div>
           <div class="cb">
-            <el-checkbox v-model="syCb">发送带水印的图片</el-checkbox>
+            <el-checkbox v-model="isAddWatermark">发送带水印的图片</el-checkbox>
           </div>
         </div>
         <span slot="footer" class="dialog-footer">
@@ -334,16 +346,23 @@
       </el-dialog>
 
     </div>
+
+    <div class="proDetail" v-show="proDetailLayer == true">
+      <editProduction @syncLayerStatus="syncLayerStatus" :selProId="selProId" :proDetailLayer="proDetailLayer"></editProduction>
+    </div>
+
   </div>
 </template>
 
 <script type="text/ecmascript-6">
 import utils from '@/commons/Batar/utils'
 import draggable from 'vuedraggable'
+import editProduction from '@/components/editProduction/editProduction'
 
 export default {
   data() {
     return {
+      proDetailLayer: false,
       pageSizes: [10, 20, 50],
       pageSize: 10,
       allPros: {},
@@ -369,20 +388,8 @@ export default {
       ],
       newProAllSel: false,
       repeatProAllSel: false,
-      syCb: false,
-      checkList: [],
-      previewImgs: [
-        { id: '1', imgSrc: 'static/imgs/test.png' },
-        { id: '2', imgSrc: 'static/imgs/test2.png' },
-        { id: '3', imgSrc: 'static/imgs/test2.png' },
-        { id: '4', imgSrc: 'static/imgs/test2.png' },
-        { id: '5', imgSrc: 'static/imgs/test2.png' },
-        { id: '6', imgSrc: 'static/imgs/test2.png' },
-        { id: '7', imgSrc: 'static/imgs/test2.png' },
-        { id: '8', imgSrc: 'static/imgs/test2.png' },
-        { id: '9', imgSrc: 'static/imgs/test2.png' },
-        { id: '10', imgSrc: 'static/imgs/test2.png' }
-      ],
+      isAddWatermark: false,
+      selCompany: [],
       jsDialog: false,
       tsDialog: false,
       preViewDialog: false,
@@ -393,28 +400,12 @@ export default {
       r1: '',
       setWaterMaskDialog: false,
       batchAddKindDialog: false,
-      newProSetting: '7',
+      newProSetting: null,
       newProSettingDialog: false,
-      upAndDown: '1',
+      upAndDown: 1, // 1：上架 2：下架
       upAndDownDialog: false,
-      kinds: [
-        {
-          value: 'all',
-          label: '全部大类'
-        },
-        {
-          value: '手镯',
-          label: '手镯'
-        },
-        {
-          value: '戒指',
-          label: '戒指'
-        },
-        {
-          value: '项链',
-          label: '项链'
-        }
-      ],
+      kinds: [],
+      selKind: 'all',
       states: [
         {
           value: 'all',
@@ -433,43 +424,95 @@ export default {
           label: '删除'
         }
       ],
-      shortcutsOptions: {
-        shortcuts: [
-          {
-            text: '今天',
-            onClick(picker) {
-              picker.$emit('pick', new Date())
-            }
-          },
-          {
-            text: '昨天',
-            onClick(picker) {
-              const date = new Date()
-              date.setTime(date.getTime() - 3600 * 1000 * 24)
-              picker.$emit('pick', date)
-            }
-          },
-          {
-            text: '一周前',
-            onClick(picker) {
-              const date = new Date()
-              date.setTime(date.getTime() - 3600 * 1000 * 24 * 7)
-              picker.$emit('pick', date)
-            }
-          }
-        ]
-      },
-      selKind: 'all',
       selState: 'all',
       searchKey: '',
       currentPage: 1,
       startTime: '',
       endTime: '',
       batchDelDisabled: true, // 批量删除禁用状态
-      pagerStatus: false
+      pagerStatus: false,
+      allPromotions: [], // 所有的推广类别
+      selPromotions: [],
+      selRowIds: [], // 被选择产品的id集合
+      selProId: null, // 编辑产品的id
+      selImg: null,
+      proDetails: {} // 点击获取图片获取详情
     }
   },
   methods: {
+    uploadImgChange(e) {
+      let formData = new FormData()
+      formData.append('file', e.target.files[0])
+      formData.append('type', 1)
+      this.Axios
+        .post(`${this.fileAddress}/image/upload`, formData)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.proDetails.imageList.push({ imageUrl: result.data[0].url })
+            this.updateImgInfo()
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.uploadFile)
+        })
+    },
+    delPreImg(url) {
+      for (let i = 0; i < this.proDetails.imageList.length; i++) {
+        if (this.proDetails.imageList[i].imageUrl == url) {
+          this.proDetails.imageList.splice(i, 1)
+          break
+        }
+      }
+      this.updateImgInfo()
+    },
+    updateImgInfo() {
+      this.Axios
+        .put(`/product/product/${this.proDetails.id}`, this.proDetails)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.$message.success('更新成功')
+            this.getProByParams()
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.submit)
+        })
+    },
+    syncLayerStatus(val) {
+      this.proDetailLayer = val
+      this.getProByParams()
+    },
+    editPro(id) {
+      this.selProId = id
+      this.proDetailLayer = true
+    },
+    delSinglePro(row) {
+      this.$confirm('确定删除', '提示', { type: 'warning' })
+        .then(res => {
+          this.Axios
+            .delete(`/product/product/${row.id}`)
+            .then(res => {
+              let result = res.data
+              if (result.code == 0) {
+                this.$message.success('删除成功')
+                this.getProByParams()
+              } else {
+                this.$message.error(result.msg)
+              }
+            })
+            .catch(err => {
+              this.extCatch(err, this.delSinglePro)
+            })
+        })
+        .catch(err => {})
+      console.log(row)
+    },
     getAllPros(params = {}) {
       this.loading = true
       this.Axios
@@ -496,7 +539,7 @@ export default {
     datadragEnd(evt) {
       console.log('拖动前的索引 :' + evt.oldIndex)
       console.log('拖动后的索引 :' + evt.newIndex)
-      console.log(this.previewImgs)
+      console.log(this.proDetails.imageList)
     },
     dtFile(e) {
       utils.encodeBase64(e).then(data => {
@@ -511,23 +554,117 @@ export default {
     batchDel() {
       this.$confirm('确定要删除选中的产品？', '提示', {
         type: 'warning'
-      }).then(() => {
-        this.$message({
-          type: 'success',
-          message: '删除成功！'
-        })
       })
+        .then(res => {
+          this.batchDelDetail()
+        })
+        .catch(err => {})
+    },
+    batchDelDetail() {
+      let params = {
+        PRS: {
+          ids: this.selRowIds
+        }
+      }
+      this.Axios
+        .delete('/product/product/batch', params)
+        .then(res => {
+          this.$message.success('批量删除成功')
+          this.getProByParams()
+        })
+        .catch(err => {
+          this.extCatch(err, this.batchDelDetail)
+        })
     },
     batchAddKindConfirm() {
-      this.batchAddKindDialog = false
+      if (this.categoryIds.length > 0) {
+        let params = {
+          categoryIds: this.categoryIds,
+          productIds: this.selRowIds
+        }
+        this.Axios
+          .post('/promotion/category/product', params)
+          .then(res => {
+            let result = res.data
+            if (result.code == 0) {
+              this.$message.success('添加成功')
+              this.batchAddKindDialog = false
+              this.getProByParams()
+            } else {
+              this.$message.error(result.msg)
+            }
+          })
+          .catch(err => {
+            this.extCatch(err, this.batchAddKindConfirm)
+          })
+      } else {
+        this.$message.warning('请选择推广类别')
+      }
     },
     newProSettingConfirm() {
-      console.log(this.newProSetting)
-      this.newProSettingDialog = false
+      let params = {
+        newTime: this.newProSetting
+      }
+      this.Axios
+        .post('/product/product/newTime', params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.$message.success('设置成功')
+            this.newProSettingDialog = false
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.settingNewproTime)
+        })
     },
     upAndDownConfirm() {
-      console.log(this.upAndDown)
-      this.upAndDownDialog = false
+      if (this.upAndDown == 1) this.upConfirm()
+      else if (this.upAndDown == 2) this.downConfirm()
+    },
+    upConfirm(id) {
+      let params = {
+        ids: null
+      }
+      id ? (params.ids = [id]) : (params.ids = this.selRowIds)
+      this.Axios
+        .post('/product/product/putawayUp', params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.$message.success('上架成功')
+            this.upAndDownDialog = false
+            this.getProByParams()
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.upConfirm)
+        })
+    },
+    downConfirm(id) {
+      let params = {
+        ids: null
+      }
+      id ? (params.ids = [id]) : (params.ids = this.selRowIds)
+      this.Axios
+        .post('/product/product/putawayDown', params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.$message.success('下架成功')
+            this.upAndDownDialog = false
+            this.getProByParams()
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.upConfirm)
+        })
     },
     formatter(row, column) {
       return row.address
@@ -541,14 +678,29 @@ export default {
       this.getProByParams()
     },
     handleSelectionChange(val) {
-      if (val.length > 0) {
-        this.batchDelDisabled = false
-      } else {
-        this.batchDelDisabled = true
-      }
+      val.length > 0
+        ? (this.batchDelDisabled = false)
+        : (this.batchDelDisabled = true)
+      this.selRowIds = []
+      val.forEach(item => {
+        this.selRowIds.push(item.id)
+      })
     },
-    showMore() {
+    showMore(id) {
       this.preViewDialog = true
+      this.Axios
+        .get(`/product/product/${id}`)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.proDetails = result.data
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.showMore)
+        })
     },
     getProByParams() {
       let params = {
@@ -558,19 +710,128 @@ export default {
         }
       }
       this.getAllPros(params)
+    },
+    getAllKind() {
+      let params = {
+        PRS: {
+          size: 999
+        }
+      }
+      this.Axios
+        .get('/product/productClass', params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.kinds = result.data.list
+            this.kinds.unshift({ id: 'all', className: '全部类别' })
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getAllKind)
+        })
+    },
+    getAllPromotions() {
+      this.Axios
+        .get('promotion/category')
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.allPromotions = result.data
+            this.allPromotions.forEach(item => {
+              this.selPromotions.push([])
+            })
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getAllPromotions)
+        })
+    },
+    getCurrentNewtime() {
+      this.Axios
+        .get('/product/product/newTime')
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.newProSetting = result.data
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getCurrentNewtime)
+        })
+    },
+    settingNewPro(id) {
+      this.Axios
+        .put(`/product/product/${id}/new`)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.$message.success('设置成功')
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.settingNewPro)
+        })
     }
-  },
-  watch: {
-    opacity(val) {
-      let syBgElement = this.$refs.syBgElement
-      syBgElement.style.opacity = val / 100
-    }
-  },
-  components: {
-    draggable
   },
   created() {
     this.getAllPros()
+    this.getAllKind()
+  },
+  components: {
+    draggable,
+    editProduction
+  },
+  watch: {
+    preViewDialog(val){
+      if(!val){
+        utils.reset(this.$refs.fileInput)
+      }
+    },
+    opacity(val) {
+      let syBgElement = this.$refs.syBgElement
+      syBgElement.style.opacity = val / 100
+    },
+    batchAddKindDialog(val) {
+      if (val) {
+        this.getAllPromotions()
+      } else {
+        this.selPromotions.forEach((item, index) => {
+          if (item.length > 0) {
+            item.splice(0, 1)
+          }
+        })
+      }
+    },
+    newProSettingDialog(val) {
+      if (val) {
+        this.getCurrentNewtime()
+      }
+    },
+    upAndDownDialog(val) {
+      if (!val) {
+        this.upAndDown = 1
+      }
+    }
+  },
+  computed: {
+    categoryIds() {
+      // 计算过后的推广类别数组
+      let result = []
+      this.selPromotions.forEach(item => {
+        if (item[0]) {
+          result.push(item[0])
+        }
+      })
+      return result
+    }
   }
 }
 </script>
@@ -607,64 +868,76 @@ $base-color = rgb(230, 14, 50)
       width 100%
       height 75px
       border-radius 5px
+    .down
+      color $base-color
   .pageWrapper
     text-align center
     margin-bottom 40px
-.dialogWrapper
-  .settingWaterMark
-    display flex
-    .leftWrapper
-      margin-right 1%
-      flex 1
-      .top
-        margin-bottom 0.5rem
-        i.checkBoxIcon:after
-          content '\e658'
-        i.checkBoxIconSel:after
-          content '\e657'
-          color $base-color
-      .bottom, img
-        width 100%
-    .rightWrapper
-      width 16rem
-      overflow hidden
-      .top
-        .syPlace
+  .dialogWrapper
+    .batchAddKindElem
+      .item
+        display flex
+        flex-wrap wrap
+        .childCheckbox
+          color #A7A7A7
+    .settingWaterMark
+      display flex
+      .leftWrapper
+        margin-right 1%
+        flex 1
+        .top
+          margin-bottom 0.5rem
+          i.checkBoxIcon:after
+            content '\e658'
+          i.checkBoxIconSel:after
+            content '\e657'
+            color $base-color
+        .bottom, img
           width 100%
-          height 12rem
-          display flex
-          justify-content center
-          align-items center
-          margin 0.5rem 0
-          overflow hidden
+      .rightWrapper
+        width 16rem
+        overflow hidden
+        .top
+          .syPlace
+            width 100%
+            height 12rem
+            display flex
+            justify-content center
+            align-items center
+            margin 0.5rem 0
+            overflow hidden
+            img
+              width 100%
+        .middle
           img
             width 100%
-      .middle
-        img
-          width 100%
-          margin 0.5rem 0
-      .bottom
-        display flex
-        justify-content center
-        margin-top 1rem
-  .previewImg
-    .contentWrapper
-      height 30rem
-      overflow auto
-      .draggableSpan
+            margin 0.5rem 0
+        .bottom
+          display flex
+          justify-content center
+          margin-top 1rem
+    .previewImg
+      .contentWrapper
+        max-height 30rem
+        overflow auto
         display flex
         flex-wrap wrap
         .draggableItem
           width 23.7%
           margin 0.5%
+          position relative
+          .delIcon
+            color $base-color
+            position absolute
+            top 5px
+            right 5px
           img
             width 100%
             border-radius 3px
-  .tsWrapper
-    .cb
-      margin-top 2rem
-  .jsWrapper
-    .myPro
+    .tsWrapper
+      .cb
+        margin-top 2rem
+    .jsWrapper, .myPro
       padding-bottom 1rem
       border-bottom 1px solid #EDEDED
       &:last-child
@@ -703,4 +976,14 @@ $base-color = rgb(230, 14, 50)
         .desPlace
           .bottomText
             color #C0C0C0
+  .proDetail
+    padding 15px 15px 0 15px
+    overflow auto
+    position fixed
+    top 50px
+    left 210px
+    right 0
+    bottom 0
+    z-index 100
+    background white
 </style>

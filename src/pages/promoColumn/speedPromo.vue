@@ -23,12 +23,12 @@
           :visible.sync="speedPromo_dialog"
           width="950px" align="left">
           <div class="content">
-            <div class="item" v-for="kind in allPromoData" :key="kind.categoryName">
+            <div class="item" v-for="kind in allPromoData" :key="kind.id">
                 <div class="parent">
                   <el-radio v-model="kind_checked" :label="kind.id">{{kind.categoryName}}</el-radio>
                 </div>
-                <div class="child" v-show="kind.children != undefined">
-                  【 <el-radio v-model="kind_checked" class="childText" :label="child.id" v-for="child in kind.children" :key="child.categoryName">{{ child.categoryName }}</el-radio> 】
+                <div class="child" v-show="kind.categoryList.length != 0">
+                  【 <el-radio v-model="kind_checked" class="childText" :label="child.id" v-for="child in kind.categoryList" :key="child.id">{{ child.categoryName }}</el-radio> 】
                 </div>
             </div>
           </div>
@@ -47,6 +47,7 @@
                       推广名称
                     </span>
                     <el-input v-model="item.name" placeholder="请输入内容" class="speedpromo_txt" size="small" @change="nameChange(item)" :maxlength="6" algin="center"></el-input>
+                    <!-- <el-input v-model="item.name" placeholder="请输入内容" class="speedpromo_txt" size="small" @change="nameChange(item)" algin="center"></el-input> -->
                     <p @click="imgsetDialog(item)">
                       <img v-bind:src="fileAddress+item.imageUrl" class="image">
                     </p>
@@ -63,17 +64,16 @@
             <div class="displayDiv" v-loading.fullscreen.lock="imgLoading">
               <el-row>
                 <el-col :span="6" style="padding:10px">
-                  <input type="file" ref="uploadimg_file" style="display:none" @change="upload_file"/>
+                  <input type="file" ref="uploadimg_file" style="display:none" @change="upload_file" accept="image/*"/>
                   <div class="upload_bigdiv" @click="upload">
-                    <div class="add_text">+</div>
-                    <br/>
+                    <div class="add_text"><i class="iconfont">&#xe67f;</i></div>
                     <p>上传图片</p>
                     <p>尺寸比例为1：1</p>
                   </div>
                 </el-col>
-                <el-col :span="6" v-for="item in existData" :key="item.img" style="padding:10px">
+                <el-col :span="6" v-for="item in existData" :key="item.imageUrl" style="padding:10px">
                   <div class="img_bigdiv" @click="imgclick(item)" @mouseover="img_over(item)">
-                    <div :class="item.imgTF == 1?'img_div redBorder':'img_div'" v-bind:style="{'background-image':'url('+fileAddress+item.img+')'}">
+                    <div :class="item.imgTF == 1?'img_div redBorder':'img_div'" v-bind:style="{'background-image':'url('+fileAddress+item.img.imageUrl+')'}">
                       <div class="delImgDiv" v-show="imgOverId == item.img && item.isSave != 1" @click="delImgId(item)"><i class="iconfont">&#xe656;</i></div>
                       <div class="selectImgDiv" v-show="item.isSave == 1"><i class="iconfont">&#xe676;</i></div>
                     </div>
@@ -149,6 +149,7 @@ export default {
           if (data.data.code == 0) {
             self.value = data.data.data.length;
             self.speedpromoData = data.data.data;
+            console.log(self.speedpromoData)
             self.open_tf = data.data.data[0].isOpen;
             self.speedpromoImgData = [];
             for (var i = 0; i < data.data.data.length; i++) {
@@ -212,6 +213,14 @@ export default {
     //更换名称
     nameChange(elem) {
       var self = this;
+      if (elem.name.length > 6) {
+        this.$message({
+          message: "推广名称字数不能大于6！",
+          type: "warning"
+        });
+        elem.name = elem.name.substring(0, 6);
+        return false;
+      }
       let params = {
         id: elem.id,
         name: elem.name
@@ -221,7 +230,7 @@ export default {
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
-              message: "名字修改成功！",
+              message: "推广名称修改成功！",
               type: "success"
             });
             self.created_fun();
@@ -247,15 +256,18 @@ export default {
             self.speedPromoImgList = data.data.data;
             self.existData = [];
             for (var j = 0; j < self.speedPromoImgList.length; j++) {
+              // console.log(self.speedPromoImgList[j])
               var subData = {};
               subData.imgTF = 0; //0为不是当前推广图片
               subData.img = self.speedPromoImgList[j];
               for (var i = 0; i < self.speedpromoImgData.length; i++) {
-                if (self.speedPromoImgList[j] != self.speedpromoImgData[i]) {
+                // console.log(self.speedpromoImgData[i])
+                // console.log(self.speedPromoImgList[j])
+                if (self.speedPromoImgList[j].imageUrl != self.speedpromoImgData[i]) {
                   subData.isSave = 0; //没有设置推广的图片为0
                 } else {
                   subData.isSave = 1; //已经设置推广的图片为1
-                  if (elem.imageUrl == self.speedPromoImgList[j]) {
+                  if (elem.imageUrl == self.speedPromoImgList[j].imageUrl) {
                     subData.imgTF = 1; //当前推广图片为1加红色框框
                     break;
                   }
@@ -264,6 +276,7 @@ export default {
               }
               self.existData.push(subData);
             }
+            console.log(self.existData)
           }
           self.imgsetSelectData = elem;
           self.imgset_dialog = true;
@@ -288,11 +301,9 @@ export default {
       var self = this;
       for (var i = 0; i < self.existData.length; i++) {
         if (self.existData[i].imgTF == 1) {
-          // console.log(self.existData[i]);
-          // console.log(self.imgsetSelectData);
           let params = {
             id: self.imgsetSelectData.id,
-            imageUrl: self.existData[i].img
+            imageUrl: self.existData[i].img.imageUrl
           };
           this.Axios
             .put("/promotion/promotion/image", params)
@@ -303,7 +314,6 @@ export default {
                   type: "success"
                 });
                 self.created_fun();
-                self.imgset_dialog = false;
               } else {
                 this.$message({
                   message: data.data.msg,
@@ -316,6 +326,7 @@ export default {
             });
         }
       }
+      self.imgset_dialog = false;
     },
     //设置推广类别弹框
     speedPromoOpen(elem) {
@@ -325,27 +336,6 @@ export default {
         .then(data => {
           if (data.data.code == 0) {
             self.allPromoData = data.data.data;
-            var data = self.allPromoData,
-              tree = (function(data, root) {
-                var r,
-                  o = {};
-                var temp_data = [];
-                data.forEach(function(a) {
-                  a.children = o[a.id] && o[a.id].children;
-                  o[a.id] = a;
-                  if (a.parentId == 0) {
-                    r = a;
-                    temp_data.push(a);
-                  } else {
-                    o[a.parentId] = o[a.parentId] || {};
-                    o[a.parentId].children = o[a.parentId].children || [];
-                    o[a.parentId].children.push(a);
-                  }
-                });
-                return temp_data;
-              })(data, null);
-            //无限级菜单拼接数据组tree
-            self.allPromoData = tree;
           }
         })
         .catch(err => {
@@ -404,12 +394,13 @@ export default {
         .post(`${this.fileAddress}/image/upload`, formData)
         .then(data => {
           if (data.data.code == 0) {
+            // console.log(data.data.data[0].url);
             let params = {
               id: self.imgsetSelectData.id,
-              imageUrl: data.data.data.url
+              imageUrl: data.data.data[0].url
             };
             this.Axios
-              .post("/promotion/promotion/image", params)
+              .put("/promotion/promotion/image", params)
               .then(data => {
                 if (data.data.code == 0) {
                   this.$message({
@@ -445,11 +436,11 @@ export default {
       var self = this;
       let params = {
         PRS: {
-          imageUrl: elem.img
+          imageUrl: elem.img.id
         }
       };
       this.Axios
-        .delete("/promotion/promotion/image", params)
+        .delete("/promotion/promotion/image/" + elem.img.id, params)
         .then(data => {
           if (data.data.code == 0) {
             for (var i = 0; i < self.existData.length; i++) {
@@ -522,12 +513,14 @@ $font-color = #999
       color $base-color
       cursor pointer
       .add_text
-        font-size 50px
+        margin-top 20px
+        .iconfont
+          font-size 30px
   .speedpromo_elcol
     padding 12px
     float left
     width 300px
-    min-height 220px
+    height 350px
     .speedpromo_bigdiv
       width 100%
       line-height 30px

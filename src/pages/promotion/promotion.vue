@@ -14,7 +14,7 @@
       <el-container>
         <el-aside class="left_sale_menu" style="width:300px;">
           <div class="topnav leftmenu">
-             <span class="redfont">销售人员列表</span>
+             <span class="redfont">类别编辑</span>
           </div>
           <div class="left_menu_div">
             <div class="left_submenu_div">
@@ -43,19 +43,19 @@
                 <draggable :list="category_allsubdata" @update="datadragEnd" :options="{animation: 300,handle:'.dargDiv'}">
                   <transition-group name="list-complete" >
                     <div v-for="category in category_allsubdata" :key="category.id">
-                      <div :index="category.id" v-if="category.children == undefined" class="dargDiv"  @mouseover="menuover(category.id)" @click="selectmenu(category)" style="padding-left:20px">
-                        {{category.categoryName}}
+                      <div :index="category.id" v-if="category.categoryList.length == 0" class="dargDiv"  @mouseover="menuover(category.id)" @click="selectmenu(category)" style="padding-left:20px">
+                        {{category.categoryName}}({{category.count}})
                         <span class="menutool" v-show="submenuId == category.id"><i class="iconfont" @click="append(category)">&#xe66d;</i><i class="iconfont" @click="remove(category)">&#xe66e;</i></span>
                       </div>
                       <el-collapse-item :name="category.id" v-else  class="dargDiv">
                         <template  slot="title">
                           <div @mouseover="menuover(category.id)" @click="selectmenu(category)" style="padding-left:20px;">
-                            {{category.categoryName}}
+                            {{category.categoryName}}({{category.count}})
                             <span class="menutool" v-show="submenuId == category.id"><i class="iconfont" @click="append(category)">&#xe66d;</i><i class="iconfont"  @click="remove(category)">&#xe66e;</i></span>
                           </div>
                         </template>
-                        <div class="submenu" @mouseover="menuover(cate.id)" v-for="cate in category.children" :key="cate.id" @click="selectmenu(cate)">
-                          <span>{{cate.categoryName}}</span>
+                        <div class="submenu" @mouseover="menuover(cate.id)" v-for="cate in category.categoryList" :key="cate.id" @click="selectmenu(cate)">
+                          <span>{{cate.categoryName}}({{cate.count}})</span>
                           <span class="menutool" v-show="submenuId == cate.id"><i class="iconfont" @click="remove(cate)">&#xe66e;</i></span>
                         </div>
                       </el-collapse-item>
@@ -72,8 +72,8 @@
                 <el-input v-model="add_twopromo_name" placeholder="请输入子推广类别名称"></el-input>
               </div>
                 <span slot="footer" class="dialog-footer">
-                  <el-button @click="add_twopromo_dialog = false">取 消</el-button>
-                  <el-button type="primary" @click="add_twopromo_fun">添加子推广类别</el-button>
+                  <el-button @click="add_twopromo_dialog = false" size="small">取 消</el-button>
+                  <el-button type="primary" @click="add_twopromo_fun" size="small">添加子推广类别</el-button>
                 </span>
               </el-dialog>
               <el-dialog
@@ -82,8 +82,8 @@
                 width="30%">
                 <span>确认删除此(<span class="red_font" v-html="del_promo_name"></span>)推广类别?</span>
                 <span slot="footer" class="dialog-footer">
-                  <el-button @click="del_promo_dialog = false">取 消</el-button>
-                  <el-button type="primary" @click="del_promo(del_promo_id)">删除推广类别</el-button>
+                  <el-button @click="del_promo_dialog = false" size="small">取 消</el-button>
+                  <el-button type="primary" @click="del_promo(del_promo_id)" size="small">删除推广类别</el-button>
                 </span>
               </el-dialog>
             </div>
@@ -96,16 +96,16 @@
         
         <el-container>
           <div class="right_div topnav">
-            <span class="redfont">销售人员信息</span>
+            <span class="redfont">类别产品编辑</span>
             <div class="span_right">
 
-              <el-button size="small" @click="add_pro_dialog = true">添加产品</el-button>
+              <el-button size="small" @click="addPro">添加产品</el-button>
               <el-dialog
                 title="添加产品到推广类别"
                 :visible.sync="add_pro_dialog"
                 width="950px">
-                <span>产品类别：
-                  <el-select v-model="value" placeholder="全部类别">
+                <div class="proSearchDiv">产品类别：
+                  <el-select v-model="value" placeholder="全部类别" size="small">
                     <el-option
                       v-for="item in options"
                       :key="item.value"
@@ -115,99 +115,123 @@
                   </el-select>
                   <el-input
                     placeholder="请输入内容"
-                    v-model="pro_search">
+                    v-model="pro_search"
+                    size="small"
+                    class="proSearch"
+                    >
                     <i slot="prefix" class="el-input__icon el-icon-search"></i>
                   </el-input>
-                </span>
-                <div>
+                </div>
+                <div ref="proDiv" class="proDiv">
                   <el-row>
-                    <el-col :span="8" v-for="(ind) in 6 " :key="ind" >
-                      <img src="/static/imgs/test.png" style="width:100px;" />
-                      平面实心-手镯
-                    </el-col>
+                    <el-checkbox-group v-model="checkProList">
+                      <el-col :span="8" v-for="item in productData" :key="item.id" style="padding:10px">
+                        <div class="imgBigDiv" @click="proSelect(item)" >
+                          <div class="img_div">
+                            <el-checkbox :label="item.id">{{item.id}}</el-checkbox>
+                          </div>
+                          <div class="pro_img_list">
+                            <img :src="[item.headImage == null?'/static/imgs/syBg.png' : fileAddress+'/'+item.headImage]" />
+                            <div class="proImgNum">共{{item.imageCount}}张</div>
+                          </div>
+                          <div class="imgNameDiv">
+                            {{item.productName}}<br/>
+                            {{item.productNumber}}
+                          </div>
+                        </div>
+                      </el-col>
+                    </el-checkbox-group>
                   </el-row>
                 </div>
                 <span slot="footer" class="dialog-footer">
-                  <el-button @click="add_pro_dialog = false">取 消</el-button>
-                  <el-button type="primary" @click="add_pro_dialog = false">确 定</el-button>
+                  <el-button @click="add_pro_dialog = false" size="small">取 消</el-button>
+                  <el-button type="primary" @click="addPro_fun" size="small">确 定</el-button>
                 </span>
               </el-dialog>
 
-              <el-button size="small" @click="modify_promo_dialog = true">调整产品类别</el-button>
+              <el-button size="small" @click="modify_promo_dialog = true" :disabled="checkedProTF">调整产品类别</el-button>
               <el-dialog
                 title="调整产品类别"
                 :visible.sync="modify_promo_dialog"
                 width="30%">
                 <div class="content">
-                  <div class="item" v-for="kind in allKinds" :key="kind.parent">
+                  <div class="item" v-for="kind in category_odata" :key="kind.id">
                     <div class="parent">
-                      <el-checkbox v-model="kind.parent" :label="kind.parent">{{kind.parent}}</el-checkbox>
+                      <el-radio v-model="checkedCarId" :label="kind.id">{{kind.categoryName}}</el-radio>
                     </div>
-                    <div class="child" v-show="kind.childs.length > 0">
-                      【 <el-checkbox :v-model="child" class="childText" :label="child" v-for="child in kind.childs" :key="child">{{ child }}</el-checkbox> 】
+                    <div class="child" v-show="kind.categoryList.length > 0">
+                      【 <el-radio :v-model="checkedCarId" class="childText" :label="child.id" v-for="child in kind.categoryList" :key="child.id">{{ child.categoryName }}</el-radio> 】
                     </div>
                   </div>
                 </div>
                 <span slot="footer" class="dialog-footer">
-                  <el-button @click="modify_promo_dialog = false">取 消</el-button>
-                  <el-button type="primary" @click="modify_promo_dialog = false">确 定</el-button>
+                  <el-button @click="modify_promo_dialog = false" size="small">取 消</el-button>
+                  <el-button type="primary" @click="modifyProToPromo" size="small">确 定</el-button>
                 </span>
               </el-dialog>
 
-              <el-button size="small" type="primary" @click="batch_del_dialog = true">批量移除</el-button>
-              <el-dialog
-                title="提示"
-                :visible.sync="batch_del_dialog"
-                width="30%">
-                <span>确认要批量移除所选中产品？</span>
-                <span slot="footer" class="dialog-footer">
-                  <el-button @click="batch_del_dialog = false">取 消</el-button>
-                  <el-button type="primary" @click="batch_del_dialog = false">确 定</el-button>
-                </span>
-              </el-dialog>
+              <el-button size="small" type="primary" @click="batchDelPro" :disabled="checkedProTF">批量移除</el-button>
             </div>
             <br/>
             <div class="right_subdiv">
               <el-table
                 :data="tableData"
                 border
-                class="el-table" style="width:98%;">
+                class="el-table" style="width:98%;"
+                v-if="tableData.length != 0"
+                @selection-change="proSelectionChange"
+                >
                 <el-table-column
                   type="selection"
+                  align="center"
                   width="55">
                 </el-table-column>
                 <el-table-column
+                  align="center"
                   label="匹配图">
                   <template slot-scope="scope">
-                    <img src="/static/imgs/test.png" width="120px" @click="img_dialog = true"/><br/>
-                    共3张
+                    <!-- <img :src="[scope.row.headImage == null?'/static/imgs/syBg.png' : fileAddress+'/'+scope.row.headImage]" width="120px" @click="img_dialog = true"/><br/> -->
+                    <img :src="[scope.row.headImage == null?'/static/imgs/syBg.png' : fileAddress+'/'+scope.row.headImage]" width="120px"/><br/>
+                    共{{scope.row.imageCount}}张
                   </template>
                 </el-table-column>
                 <el-table-column
-                  prop="name"
+                  prop="productName"
+                  align="center"
                   label="产品名称">
                 </el-table-column>
                 <el-table-column
                   prop="province"
+                  align="center"
                   label="产品分类">
+                  <template slot-scope="scope">
+                    {{scope.row.productClassName}}
+                  </template>
                 </el-table-column>
                 <el-table-column
-                  prop="city"
+                  prop="productNumber"
+                  align="center"
                   label="产品编号">
                 </el-table-column>
 
                 <el-table-column
                   prop="zip"
+                  align="center"
                   label="所属类别">
+                  <template slot-scope="scope">
+                    {{scope.row.categoryName}}
+                  </template>
                 </el-table-column>
                 <el-table-column
+                  align="center"
                   label="操作">
                   <template slot-scope="scope">
-                    <el-button @click="editrow(scope.row)" size="small">编辑</el-button>
-                    <el-button size="small" type="primary">移除</el-button>
+                    <el-button @click="editrow(scope.row)" size="small" disabled>编辑</el-button>
+                    <el-button size="small" type="primary" @click="delRowPro(scope.row)">移除</el-button>
                   </template>
                 </el-table-column>
               </el-table>
+              <div v-else>此类别还没有添加产品,请添加产品！</div>
               <!-- 点击图片弹出框 -->
               <el-dialog
                 title="产品图片"
@@ -222,25 +246,26 @@
                     <el-col :span="6" v-for="index in 16" :key="index" style="padding:10px">
                       <div class="img_bigdiv">
                         <div class="img_div">
-                          <el-checkbox v-model="img_checked">备选项</el-checkbox>
+                          <el-checkbox v-model="img_checked"></el-checkbox>
                           <el-button size="small" type="primary" icon="el-icon-close" class="img_del_but"></el-button>
                         </div>
-                        <img src="/static/imgs/test.png" class="image" @mouseover="img_over" @mouseout="img_out">
+                        <img src="/static/imgs/test.png" class="image">
                       </div>
                     </el-col>
                   </el-row>
                 </div>
               </el-dialog>
-              <div>
+              <div v-if="tableData.length != 0">
                   <div class="block">
                     <el-pagination
                       @size-change="handleSizeChange"
                       @current-change="handleCurrentChange"
-                      :current-page.sync="currentPage2"
-                      :page-sizes="[100, 200, 300, 400]"
-                      :page-size="100"
+                      :current-page.sync="pageNum"
+                      :page-sizes="[10, 20, 30]"
+                      background
+                      :page-size="pageSize"
                       layout="sizes, prev, pager, next"
-                      :total="1000">
+                      :total="pageTotal">
                     </el-pagination>
                   </div>
               </div>
@@ -265,6 +290,7 @@ export default {
   data() {
     return {
       category_odata: [], //推广类别接口原始数据
+      categoryLoadTF: true, //推广类别删除数据后重新输入
       //推广类别名搜索
       search_name: "",
       //推广类别备注名称
@@ -301,60 +327,9 @@ export default {
       //删除推广类别的推广类别ID
       del_promo_id: -1,
       //推广产品table
-      tableData: [
-        {
-          date: "2016-05-03",
-          name: "平口实心手镯",
-          province: "手镯—实心—平面密口",
-          city: "65465468548-125",
-          address: "新品",
-          zip: 200333
-        },
-        {
-          date: "2016-05-03",
-          name: "平口实心手镯",
-          province: "手镯—实心—平面密口",
-          city: "65465468548-125",
-          address: "新品",
-          zip: 200333
-        },
-        {
-          date: "2016-05-03",
-          name: "平口实心手镯",
-          province: "手镯—实心—平面密口",
-          city: "65465468548-125",
-          address: "新品",
-          zip: 200333
-        },
-        {
-          date: "2016-05-03",
-          name: "平口实心手镯",
-          province: "手镯—实心—平面密口",
-          city: "65465468548-125",
-          address: "新品",
-          zip: 200333
-        },
-        {
-          date: "2016-05-03",
-          name: "平口实心手镯",
-          province: "手镯—实心—平面密口",
-          city: "65465468548-125",
-          address: "新品",
-          zip: 200333
-        },
-        {
-          date: "2016-05-03",
-          name: "平口实心手镯",
-          province: "手镯—实心—平面密口",
-          city: "65465468548-125",
-          address: "新品",
-          zip: 200333
-        }
-      ],
+      tableData: [],
       //图片弹出框
       img_dialog: false,
-      //第几页默认5
-      currentPage2: 5,
       //产品里多张图片显示
       currentDate: new Date(),
       //选择图片
@@ -367,29 +342,6 @@ export default {
       confirm_promo_dialog: false,
       //批量移除
       batch_del_dialog: false,
-      // 全部推广类别
-      allKinds: [
-        { parent: "推荐产品", childs: [] },
-        { parent: "人气产品", childs: [] },
-        {
-          parent: "丝丝心印系列",
-          childs: [
-            "子类1",
-            "子类2",
-            "子类3",
-            "子类4",
-            "子类5",
-            "子类6",
-            "子类7",
-            "子类8",
-            "子类9",
-            "子类10",
-            "子类11",
-            "子类12",
-            "子类13"
-          ]
-        }
-      ],
       //添加产品到推广类别全部类别
       options: [
         {
@@ -416,6 +368,24 @@ export default {
       value: "",
       //添加产品到推广类别输入搜索框
       pro_search: "",
+      productData: [], //产品显示产品数据
+      productAllData: [], //产品显示所有数据
+      productNum: 1, //产品显示分页第几页，默认为1
+      productSize: 15, //产品显示一页显示几条，默认为15
+      selectedProNum: 0, //产品选中的产品id
+      categorySelectData: [], //推广类别选中数据
+      pageNum: 1, //分页第几页，默认为1
+      pageSize: 10, //每页显示几条，默认为10
+      pageTotal: 0, //此类产品总几条的数据
+      checkedProId: [], //选中产品组合数组
+      checkedProTF: true, //true为没有选择产品，false为有选择产品
+      checkedCarId: "", //调整推广类别选中的推广类别ID
+      checkProList: [], //添加产品弹出框选择产品id
+      prAddListenTf: true, //产品分页监听TF
+      classifyTreeData: [], //产品分类tree数据
+      classifySelectId: 0, //产品分类选中的ID
+      categoryNameData: {}, //所属类别字段
+      categoryIdData: {}, //所属类别ID字段
 
       //鼠标拖动
       list3: [
@@ -433,6 +403,8 @@ export default {
   methods: {
     create_fun() {
       var self = this;
+      self.pageNum = 1;
+      this.clasTree_fun();
       this.Axios
         .get("/promotion/category")
         .then(data => {
@@ -443,34 +415,33 @@ export default {
             self.promo_alldata = data.data.data;
             var promo_alldata_new = [];
             var promo_alldata_subdata = [];
-            var data = self.promo_alldata,
-              tree = (function(data, root) {
-                var r,
-                  o = {};
-                var temp_data = [];
-                data.forEach(function(a) {
-                  a.children = o[a.id] && o[a.id].children;
-                  o[a.id] = a;
-                  if (a.parentId == 0) {
-                    r = a;
-                    temp_data.push(a);
-                  } else {
-                    o[a.parentId] = o[a.parentId] || {};
-                    o[a.parentId].children = o[a.parentId].children || [];
-                    o[a.parentId].children.push(a);
-                  }
-                });
-                return temp_data;
-              })(data, null);
-            //无限级菜单拼接数据组tree
-            // console.log(tree);
-            self.category_allsubdata = tree;
+            self.category_allsubdata = data.data.data;
+            //如果推广类别有数据刚显示第一条推广类别数据
+            if (self.categoryLoadTF) {
+              self.selectmenu(self.category_allsubdata[0]);
+              self.categoryLoadTF = false;
+            }
           }
         })
         .catch(err => {
           this.extCatch(err, this.create_fun);
         });
     },
+    //产品分类tree数据
+    clasTree_fun() {
+      this.Axios
+        .get("/product/productClass/tree")
+        .then(data => {
+          if (data.data.code == 0) {
+            // console.log(data.data.data);
+            this.classifyTreeData = data.data.data;
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.clasTree_fun);
+        });
+    },
+    //鼠标移开
     menuover(elem) {
       this.submenuId = elem;
     },
@@ -489,10 +460,84 @@ export default {
       self.del_promo_id = data.id;
       self.del_promo_dialog = true;
     },
-    //
+    //推广类别选择事件
     selectmenu(data) {
-      console.log(data);
+      var self = this;
+      self.pageNum = 1;
+      self.categorySelectData = data;
+      self.categoryFind(self.pageNum, self.pageSize);
     },
+    //推广分类产品分页子查询事件
+    categoryFind(num, size) {
+      var self = this;
+      let params = {
+        PRS: {
+          page: num,
+          size: size
+        }
+      };
+      // console.log(self.categorySelectData);
+
+      this.Axios
+        .get("/promotion/category/" + self.categorySelectData.id, params)
+        .then(data => {
+          if (data.data.code == 0) {
+            // console.log(data.data.data.total)
+            // console.log(data.data.data.list);
+            self.pageTotal = data.data.data.total;
+            var tempDataList = [];
+            self.categoryNameData = {};
+            self.categoryIdData = {};
+            if (data.data.data.list.length != 0) {
+              for (var i = 0; i < data.data.data.list.length; i++) {
+                tempDataList.push(data.data.data.list[i].productId);
+                var tempProId = data.data.data.list[i].productId;
+                self.categoryNameData[tempProId] =
+                  data.data.data.list[i].categoryName;
+                self.categoryIdData[tempProId] =
+                  data.data.data.list[i].categoryId;
+              }
+              self.proIdList_fun(tempDataList);
+            } else {
+              self.tableData = [];
+            }
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.selectmenu);
+        });
+    },
+    //产品id数组查询产品资料数组
+    proIdList_fun(elem) {
+      var self = this;
+      let params = {
+        PRS: {
+          ids: elem
+        }
+      };
+      this.Axios
+        .get("/product/product/batch/base", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            // console.log(data.data.data);
+            self.tableData = data.data.data;
+            for (var i = 0; i < self.tableData.length; i++) {
+              var tempId = self.tableData[i].id;
+              self.tableData[i].categoryName = self.categoryNameData[tempId];
+              self.tableData[i].categoryId = self.categoryIdData[tempId];
+            }
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.proIdList_fun);
+        });
+    },
+
     //鼠标滑动菜单显示添加删除事件
     menuMouseover(data) {
       this.submenuId = data.id;
@@ -574,6 +619,7 @@ export default {
             message: "删除类别成功！",
             type: "success"
           });
+          this.categoryLoadTF = true;
           this.create_fun();
         } else {
           this.$message({
@@ -583,26 +629,48 @@ export default {
         }
       });
     },
-    //产品图片编辑与鼠标移进
-    img_over() {
-      console.log("aaaa");
+    //添加产品弹出框
+    addPro() {
+      var self = this;
+      self.add_pro_dialog = true;
+      if (self.prAddListenTf) {
+        self.proDisplay(self.productNum, self.productSize);
+        setTimeout(function() {
+          var imgDiv = self.$refs.proDiv;
+          imgDiv.addEventListener("scroll", function() {
+            if (this.scrollHeight - this.scrollTop === this.clientHeight) {
+              if (
+                self.productNum * self.productSize <
+                self.productAllData.total
+              ) {
+                self.productNum++;
+                self.proDisplay(self.productNum, self.productSize);
+              }
+            }
+          });
+          self.prAddListenTf = false;
+        }, 50);
+      }
     },
-    //产品图片鼠标移出
-    img_out() {
-      console.log("aaaa");
-    },
-
     //编辑分类产品
     editrow(row) {
       console.log(row);
     },
 
     //分页属性
+    //每页显
     handleSizeChange(val) {
-      console.log(`每页 ${val} 条`);
+      // console.log(`每页 ${val} 条`);
+      var self = this;
+      self.pageNum = 1;
+      self.pageSize = val;
+      self.categoryFind(self.pageNum, self.pageSize);
     },
     handleCurrentChange(val) {
-      console.log(`当前页: ${val}`);
+      // console.log(`当前页: ${val}`);
+      var self = this;
+      self.pageNum = val;
+      self.categoryFind(self.pageNum, self.pageSize);
     },
 
     //推广类别拖动JS
@@ -614,7 +682,188 @@ export default {
     //推广类别结果输出
     outdata: function() {
       var self = this;
-      console.log(self.category_allsubdata);
+      // console.log(self.category_allsubdata);
+    },
+
+    //产品分页显示
+    proDisplay(num, size) {
+      var self = this;
+      let params = {
+        PRS: {
+          page: num,
+          size: size
+        }
+      };
+      this.Axios
+        .get("/product/product", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            self.productData = self.productData.concat(data.data.data.list);
+            self.productAllData = data.data.data;
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.proDisplay);
+        });
+    },
+    //产品选择
+    proSelect(elem) {
+      var self = this;
+      // console.log(elem);
+      self.selectedProNum = elem.id;
+    },
+    //从推广类别移除产品
+    delRowPro(elem) {
+      var self = this;
+      let params = {
+        PRS: {
+          categoryId: elem.categoryId,
+          productIds: [elem.id]
+        }
+      };
+      this.Axios
+        .delete("/promotion/category/product", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+            // console.log(self.categorySelectData.id)
+            self.selectmenu(self.categorySelectData);
+            self.create_fun();
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.delRowPro);
+        });
+    },
+    //批量移除产品
+    batchDelPro() {
+      var self = this;
+      var tempProList = [];
+      for (var i = 0; i < self.checkedProId.length; i++) {
+        tempProList.push(self.checkedProId[i].id);
+      }
+      let params = {
+        PRS: {
+          categoryId: self.categorySelectData.id,
+          productIds: tempProList
+        }
+      };
+      this.Axios
+        .delete("/promotion/category/product", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            // console.log(data.data.data);
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+            self.checkedProId = [];
+            self.pageNum = 1;
+            self.categoryFind(self.pageNum, self.pageSize);
+            self.create_fun();
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.batchDelPro);
+        });
+    },
+    //改变选中产品ID数组
+    proSelectionChange(val) {
+      var self = this;
+      self.checkedProId = val;
+      if (val.length != 0) {
+        self.checkedProTF = false;
+      } else {
+        self.checkedProTF = true;
+      }
+    },
+    //调整推广类别
+    modifyProToPromo() {
+      var self = this;
+      // console.log(self.categorySelectData.id);
+      // console.log(self.checkedProId)
+      // console.log(self.checkedCarId)
+      var tempProList = [];
+      for (var i = 0; i < self.checkedProId.length; i++) {
+        tempProList.push(self.checkedProId[i].id);
+      }
+      let params = {
+        oldCategoryId: self.categorySelectData.id,
+        productIds: tempProList,
+        id: self.checkedCarId
+      };
+      this.Axios
+        .put("/promotion/category/adjustCategory", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            // console.log(data.data.data);
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+            self.self.checkedCarId = "";
+            self.create_fun();
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.modifyProToPromo);
+        });
+      self.modify_promo_dialog = false;
+    },
+    //添加产品确认事件
+    addPro_fun() {
+      var self = this;
+      let params = {
+        categoryIds: [self.categorySelectData.id],
+        productIds: self.checkProList
+      };
+
+      this.Axios
+        .post("/promotion/category/product", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+            self.checkProList = [];
+            self.pageNum = 1;
+            self.categoryFind(self.pageNum, self.pageSize);
+            self.create_fun();
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.addPro_fun);
+        });
+      self.add_pro_dialog = false;
     }
   }
 };
@@ -673,12 +922,72 @@ $font-color = #999
       line-height 3.5
       border 1px solid #d9d9d9
       border-bottom 0
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
+      border-top-left-radius 5px
+      border-top-right-radius 5px
   .span_right
     float right
     text-algin right
     width 350px
+    .proDiv
+      height 400px
+      overflow-x hidden
+      .imgBigDiv
+        width 220px
+        height 60px
+        margin-bottom 15px
+        .img_div
+          position absolute
+          padding-left 5px
+        .pro_img_list
+          width 100px
+          height 80px
+          float left
+          cursor pointer
+          position relative
+          border-radius 5px
+          img
+            height 78px
+            border-radius 5px
+        .pro_img_list_Border
+          width 98px
+          height 78px
+          float left
+          cursor pointer
+          position relative
+          border 1px solid $base-color
+          border-radius 5px
+          img
+            height 78px
+            border-radius 5px
+        .proImgNum
+          position absolute
+          top 65px
+          right -3px
+          margin-top -11px
+          background-color #999
+          opacity 0.8
+          color #ffffff
+          font-size 12px
+          padding 0 5px 0 5px
+          border-bottom-right-radius 5px
+        .imgNameDiv
+          padding-left 110px
+          width 85%
+          font-size 14px
+          .img_del_but
+            float right
+        .proSelect
+          cursor pointer
+        .pro_img_txt
+          width 190px
+          float left
+          margin-left 10px
+          margin-top 15px
+    .proSearchDiv
+      width 100%
+      margin-bottom 15px
+    .proSearch
+      width 350px
   .right_div
     margin-left 20px
   .right_subdiv
@@ -800,7 +1109,7 @@ $font-color = #999
     font-size 13px
     font-weight 500
     padding-bottom 0
-    .el-collapse-item__content 
+    .el-collapse-item__content
       padding-bottom 0
   .submenu
     height 48px

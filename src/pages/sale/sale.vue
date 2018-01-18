@@ -47,6 +47,7 @@
                 :show-header = 'false'
                 @row-click = "rowclick"
                 @selection-change="handleSelectionChange"
+                v-loading="loading"
                 >
                 <el-table-column
                   type="selection" class="salemans_table">
@@ -302,7 +303,8 @@ export default {
       selectSaleTF: true,
       multipleSelection: [],
       selectCustData: [], //选中跟进客户数组
-      delCustTF: true //删除客户按钮禁用
+      delCustTF: true, //删除客户按钮禁用
+      loading:true,//网页加载中
     };
   },
   created() {
@@ -316,6 +318,7 @@ export default {
         .then(data => {
           if (data.data.code == 0) {
             self.salemans = data.data.data;
+            self.loading= false
             //读取第一个员工的信息
             if (self.salemans.length != 0) {
               this.customer_load(self.salemans[0].id);

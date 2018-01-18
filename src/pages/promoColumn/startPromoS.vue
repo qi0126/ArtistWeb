@@ -12,23 +12,31 @@
         <div class="contant">
           <el-row>
             <el-col :span="8">
-              <div class="startimg" @click="uploadImg"> 
-                <img src="\static\imgs\startPromoImg.png"/>            
+              <div class="startimg" @click="uploadImg" v-if="startAllData.imageType == '0'"> 
+                <img src="\static\imgs\startPromoImg.png" v-if="startAllData.imageUrl == ''" class="startImgClass"/>            
+                <img :src="fileAddress+'/'+startAllData.imageUrl" v-else class="startImgClass"/>            
               </div>
-              <input type="file" ref="imgUpload" v-show="0">
+              <div class="startimg" @click="uploadMoive" v-if="startAllData.imageType == '1'"> 
+                <img src="\static\imgs\startPromoImg.png" v-if="startAllData.imageUrl == ''" class="startImgClass"/>
+                <video v-else :src="startAllData.imageUrl" controls="controls" class="startImgClass" style="width:360px; height:640px;object-fit: fill">
+                  您的浏览器不支持 video 标签。
+                </video>
+              </div>
+              <input type="file" ref="imgUpload" v-show="0" @change="imgUpload" accept="image/*">
+              <input type="file" ref="uploadMoive" v-show="0" @change="moiveUpload" accept="video/*,.mkv">
               <div class="startimgText">
-                <span v-show="selectMode == '1'">点击图片上传推广图片</span>
-                <span v-show="selectMode == '2'">点击图片上传推广动画</span>
+                <span v-show="startAllData.imageType == '0'">点击图片上传推广图片</span>
+                <span v-show="startAllData.imageType == '1'">点击图片上传推广动画</span>
               </div>
             </el-col>
             <el-col :span="14">
               <div class="rightdiv">
                 <div class="rightSubdiv">
-                  <el-checkbox v-model="open_tf">开启推广</el-checkbox>
+                  <el-checkbox v-model="startAllData.isOpen" @change="startDataChange">开启推广</el-checkbox>
                 </div>
                 <div class="rightSubdiv">
                   选择推广方式<br/>
-                  <el-select v-model="selectMode" placeholder="请选择" size="small">
+                  <el-select v-model="startAllData.imageType" placeholder="请选择" size="small" @change="changeTypem">
                     <el-option
                       v-for="item in promoModeList"
                       :key="item.value"
@@ -39,7 +47,7 @@
                 </div>
                 <div class="rightSubdiv">
                   倒计时时间<br/>
-                  <el-select v-model="selectTime" placeholder="请选择" size="small">
+                  <el-select v-model="startAllData.countDown" placeholder="请选择" size="small" @change="startDataChange">
                     <el-option
                       v-for="item in setTimeLong"
                       :key="item.value"
@@ -47,7 +55,7 @@
                       :value="item.value">
                     </el-option>
                   </el-select>
-                  <el-select v-model="selectShow" placeholder="请选择" size="small">
+                  <el-select v-model="startAllData.isShow" placeholder="请选择" size="small" @change="startDataChange">
                     <el-option
                       v-for="item in setShow"
                       :key="item.value"
@@ -58,7 +66,7 @@
                 </div>
                 <div class="rightSubdiv">
                   设置推广路径<br/>
-                  <el-select v-model="selectValue" placeholder="请选择" size="small">
+                  <el-select v-model="startAllData.dataType" placeholder="请选择" size="small" @change="startDataChange">
                     <el-option
                       v-for="item in setpromoUrl"
                       :key="item.value"
@@ -67,22 +75,25 @@
                     </el-option>
                   </el-select>
                   <div class="hr"/>
-                  <span v-show="selectValue == '1'">
+                  <span v-show="startAllData.dataType == 2">
                       <el-button type="primary" plain size="small" class="carou_sub_selectbtn" @click="selectcarou_btn">选择类别</el-button>
-                      <div class="carou_subbottom_txt">
-                          <span class="carou_subbottom_span">已选择类别 : </span>珠宝花开系列
+                      {{startAllData.promoName}}
+                      <div class="carou_subbottom_txt" v-if="startAllData.promoName != ''||startAllData.promoName != null">
+                          <span class="carou_subbottom_span">已选择类别 : </span>{{startAllData.promoName}}
                       </div>
+                      <div class="red_font" v-else>类别还未选择！</div>
                   </span>
-                  <span v-show="selectValue == '2'">
+                  <span v-show="startAllData.dataType == 1" v-if="modalShow">
                       <el-button type="primary" plain size="small" class="carou_sub_selectbtn" @click="selectonepro">选择单品</el-button>
-                      <div class="carou_subbottom_txt">
-                          <img src="/static/imgs/test2.png" class="carou_subbottom_img"/>
-                          在水一方<br/>
-                          <span class="carou_subbottom_span">100010-1 </span>
+                      <div class="carou_subbottom_txt" v-if="startAllData.headImage != null">
+                          <img :src="[startAllData.headImage == null?'/static/imgs/syBg.png' : fileAddress+'/'+startAllData.headImage]" class="carou_subbottom_img"/>
+                          {{startAllData.proName}}<br/>
+                          <span class="carou_subbottom_span">{{startAllData.proNumber}}</span>
                       </div>
+                      <div class="red_font" v-else>产品还未选择！</div>
                   </span>
-                  <div v-show="selectValue == '3'" class="carou_subbottom_txt">
-                      <el-input v-model="url_input" placeholder="请输入要跳转的网址" size="small"></el-input>
+                  <div v-show="startAllData.dataType == 0" class="carou_subbottom_txt">
+                      <el-input v-model="startAllData.dataId" placeholder="请输入要跳转的网址" size="small" @blur="startDataChange"></el-input>
                   </div>
                 </div>
               </div>
@@ -94,12 +105,12 @@
               :visible.sync="selectpromo_dialog"
               width="950px">
                 <div class="content">
-                      <div class="item" v-for="cate in allCategory" :key="cate.id">
+                        <div class="item" v-for="cate in promoSourseData" :key="cate.id">
                           <div class="parent">
-                            <el-radio v-model="catecheckedId" :label="cate.id">{{cate.categoryName}}</el-radio>
+                            <el-radio v-model="startAllData.dataId" :label="cate.id">{{cate.categoryName}}</el-radio>
                           </div>
-                          <div class="child" v-show="cate.children != undefined">
-                            【 <el-radio v-model="catecheckedId" class="childText" :label="catesub.id" v-for="catesub in cate.children" :key="catesub.id">{{ catesub.categoryName }}</el-radio> 】
+                          <div class="child" v-show="cate.categoryList.length != 0">
+                            【 <el-radio v-model="startAllData.dataId" class="childText" :label="catesub.id" v-for="catesub in cate.categoryList" :key="catesub.id">{{ catesub.categoryName }}</el-radio> 】
                           </div>
                       </div>
                 </div>
@@ -120,19 +131,23 @@
                           v-model="selecone_search" size="small">
                           <i slot="prefix" class="el-input__icon el-icon-search"></i>
                       </el-input>
-                      <el-row :gutter="20">
-                          <el-col :span="8" v-for="item in 8" :key="item">
-                              <div class="selectone_img_div">
-                                  <img src="/static/imgs/test2.png" class="carou_subbottom_img"/>
-                                  在水一方<br/>
-                                  <span class="carou_subbottom_span">100010-1</span>
+                      <el-row :gutter="20" class="proImgDiv">
+                          <el-col :span="8" v-for="item in productData" :key="item.id">
+                              <div class="selectone_img_div" @click="selectedOnePro(item)">
+                                  <div  :class="[proSelectId == item.id?'carou_subbottom_img_border':'carou_subbottom_img']">
+                                    <img :src="[item.headImage != null?fileAddress+item.headImage:'/static/imgs/syBg.png']" />
+                                    <div class="proImgNum">共{{item.imageCount}}张</div>
+                                  </div>
+                                                    
+                                  {{item.productName}}<br/>
+                                  <span class="carou_subbottom_span">{{item.productNumber}}</span>
                               </div>
                           </el-col>
                       </el-row>
                   </div>
                   <span slot="footer" class="dialog-footer">
                       <el-button @click="selectone_dialog = false" size="small">取 消</el-button>
-                      <el-button type="primary" @click="selectone_dialog = false" size="small">确 定</el-button>
+                      <el-button type="primary" @click="changePro" size="small">确 定</el-button>
                   </span>
               </el-dialog>
             </el-col>
@@ -145,128 +160,394 @@
 export default {
   data() {
     return {
-      open_tf: false,
       promoModeList: [
         //选择推广方式
         {
-          value: "1",
+          value: 0,
           label: "图片推广"
         },
         {
-          value: "2",
+          value: 1,
           label: "动画推广"
         }
       ],
-      selectMode: "1",
 
       setpromoUrl: [
         //设置推广路径
         {
-          value: "1",
+          value: 2,
           label: "推广类别"
         },
         {
-          value: "2",
+          value: 1,
           label: "单个产品"
         },
         {
-          value: "3",
+          value: 0,
           label: "网址"
         }
       ],
-      selectValue: "1",
       setTimeLong: [
         //倒计时时间
         {
-          value: "2",
+          value: 2,
           label: "2秒"
         },
         {
-          value: "3",
+          value: 3,
           label: "3秒"
         },
         {
-          value: "4",
+          value: 4,
           label: "4秒"
         }
       ],
-      selectTime: "2",
       setShow: [
         //显示
         {
-          value: "1",
+          value: true,
           label: "显示"
         },
         {
-          value: "0",
+          value: false,
           label: "不显示"
         }
       ],
-      selectShow: "1",
+      startAllData: [],
       selectpromo_dialog: false, //选择类别弹出框
       selectone_dialog: false, //选择单品弹出框
-      allCategory: [], // 全部推广类别
+      promoSourseData: [], // 全部推广类别
       catecheckedId: "", //选中推广类别的id
       catecheckedName: "", //选中推广类别的名称
+      productData: [], //产品接口所有数据
+      productAllData: [], //产品显示所有数据
+      proSelectId: 0, //选择产品选中产品的id
       url_input: "", //跳转地址
-      selecone_search: "" //选择单品搜索
+      selecone_search: "", //选择单品搜索
+      EventListenerTf: true, //产品分页已加监听，true为未加载监听，false为已加载监听
+      loading: true, //页面加载中
+      modalShow: true //数据打散重新渲染
     };
   },
-  created() {
+  mounted() {
     this.created_fun();
   },
   methods: {
-    created_fun() {},
-    //点击图片上传图片
-    uploadImg() {
-      this.$refs.imgUpload.click();
-    },
-    //选择类别弹出框
-    selectcarou_btn() {
+    created_fun() {
       var self = this;
-      //推广类别数据属性
-      this.Axios
-        .get("/promotion/category")
+      this.Axios.get("/promotion/generalizeAppstart")
         .then(data => {
           if (data.data.code == 0) {
-            self.categoryData = data.data.data;
-            var data = data.data.data,
-              tree = (function(data, root) {
-                var r,
-                  o = {};
-                var temp_data = [];
-                data.forEach(function(a) {
-                  a.children = o[a.id] && o[a.id].children;
-                  o[a.id] = a;
-                  if (a.parentId == 0) {
-                    r = a;
-                    temp_data.push(a);
-                  } else {
-                    o[a.parentId] = o[a.parentId] || {};
-                    o[a.parentId].children = o[a.parentId].children || [];
-                    o[a.parentId].children.push(a);
-                  }
-                });
-                return temp_data;
-              })(data, null);
-            self.allCategory = tree;
+            self.startAllData = data.data.data;
+            if (self.startAllData.dataType == 1) {
+              self.proSelectId = parseInt(self.startAllData.dataId);
+              self.proData();
+            }
+            if (self.startAllData.dataType == 2) {
+              self.startAllData.dataId = parseInt(self.startAllData.dataId);
+              self.promoData();
+            }
           }
         })
         .catch(err => {
           this.extCatch(err, this.create_fun);
         });
+    },
+    //所有产品列表数据
+    proData() {
+      var self = this;
+      let params = {
+        PRS: {
+          page: 1,
+          size: 15
+        }
+      };
+      this.Axios.get("/product/product", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            self.productData = data.data.data.list;
+            self.productAllData = data.data.data;
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.proData);
+        });
+
+      self.proDisplayName();
+    },
+
+    //推广类别数组
+    promoData() {
+      var self = this;
+      this.Axios.get("/promotion/category")
+        .then(data => {
+          if (data.data.code == 0) {
+            self.promoSourseData = data.data.data;
+            self.proDisplayName();
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.promoData);
+        });
+    },
+
+    //保存轮播图片中的产品和推广类别名字
+    proDisplayName() {
+      var self = this;
+      if (self.startAllData.dataType == 1) {
+        //产品名存保存
+        let params = {
+          PRS: {
+            ids: self.startAllData.dataId
+          }
+        };
+        this.Axios.get("/product/product/batch/base", params)
+          .then(data => {
+            if (data.data.code == 0) {
+              self.startAllData.proName = data.data.data[0].productName;
+              self.startAllData.proNumber = data.data.data[0].productNumber;
+              self.startAllData.headImage = data.data.data[0].headImage;
+              self.modalShow = false;
+              self.modalShow = true;
+            } else {
+              this.$message({
+                message: data.data.msg,
+                type: "warning"
+              });
+            }
+          })
+          .catch(err => {
+            this.extCatch(err, this.proDisplayName);
+          });
+        // console.log(self.startAllData.proNumber);
+      }
+      if (self.startAllData.dataType == 2) {
+        //推广类别名称保存
+        var promoId = parseInt(self.startAllData.dataId);
+        var promoName = "";
+        for (var i = 0; i < self.promoSourseData.length; i++) {
+          if (promoId == self.promoSourseData[i].id) {
+            promoName = self.promoSourseData[i].categoryName;
+          }
+          if (self.promoSourseData[i].categoryList.length != 0) {
+            for (
+              var j = 0;
+              j < self.promoSourseData[i].categoryList.length;
+              j++
+            ) {
+              if (promoId == self.promoSourseData[i].categoryList[j].id) {
+                promoName =
+                  self.promoSourseData[i].categoryList[j].categoryName;
+              }
+            }
+          }
+        }
+        self.startAllData.promoName = promoName;
+        self.modalShow = false;
+        self.modalShow = true;
+      }
+      // console.log(self.startAllData);
+    },
+    //点击图片上传图片
+    uploadImg() {
+      this.$refs.imgUpload.click();
+    },
+    //点击图片上传图片
+    uploadMoive() {
+      this.$refs.uploadMoive.click();
+    },
+    //选择类别弹出框
+    selectcarou_btn() {
+      var self = this;
+      //推广类别数据属性
+      this.Axios.get("/promotion/category")
+        .then(data => {
+          if (data.data.code == 0) {
+            self.promoSourseData = data.data.data;
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.selectcarou_btn);
+        });
       this.selectpromo_dialog = true;
     },
     //选择类别确认按钮
     selectedPromo() {
-      console.log(this.allCategory);
-      console.log(this.catecheckedId);
+      var self = this;
+      this.Axios.post("/promotion/generalizeAppstart", self.startAllData)
+        .then(data => {
+          if (data.data.code == 0) {
+            self.startAllData = data.data.data;
+            if (self.startAllData.dataType == 2) {
+              self.startAllData.dataId = parseInt(self.startAllData.dataId);
+            }
+            self.proDisplayName();
+
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.selectedPromo);
+        });
 
       this.selectpromo_dialog = false;
     },
     //选择单品弹出框
     selectonepro() {
-      this.selectone_dialog = true;
+      var self = this;
+      self.proData();
+      self.selectone_dialog = true;
+      if (self.EventListenerTf) {
+        setTimeout(function() {
+          var Imgdiv = document.getElementsByClassName("proImgDiv")[0];
+          Imgdiv.addEventListener("scroll", function() {
+            if (this.scrollHeight - this.scrollTop === this.clientHeight) {
+              self.proimgText = true;
+              var nextPage = self.productAllData.page + 1;
+              var pageSize = self.productAllData.size;
+              if ((nextPage - 1) * pageSize < self.productAllData.total) {
+                let params = {
+                  PRS: {
+                    page: nextPage,
+                    size: pageSize
+                  }
+                };
+                self.Axios.get("/product/product", params).then(data => {
+                  if (data.data.code == 0) {
+                    var tempData = self.productData.concat(data.data.data.list);
+                    self.productData = tempData;
+                    self.productAllData = data.data.data;
+                  } else {
+                    self.$message({
+                      message: data.data.msg,
+                      type: "warning"
+                    });
+                  }
+                });
+              }
+            }
+            self.EventListenerTf = false;
+          });
+        }, 100);
+      }
+    },
+    //改变启动推广页的页面数据
+    startDataChange() {
+      var self = this;
+      this.Axios.post("/promotion/generalizeAppstart", self.startAllData)
+        .then(data => {
+          if (data.data.code == 0) {
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.startDataChange);
+        });
+    },
+    //改变推广方式
+    changeTypem() {
+      var self = this;
+      // console.log(self.startAllData)
+      //更换推广方式默认此图
+      self.startAllData.imageUrl = "";
+      self.startDataChange();
+    },
+    //图片文件上传
+    imgUpload(e) {
+      var self = this;
+      let formData = new FormData();
+      formData.append("file", e.target.files[0]);
+      formData.append("type", 0);
+      this.Axios.post(`${this.fileAddress}/image/upload`, formData).then(
+        data => {
+          if (data.data.code == 0) {
+            self.startAllData.imageUrl = data.data.data[0].url;
+            this.Axios.post("/promotion/generalizeAppstart", self.startAllData)
+              .then(data => {
+                if (data.data.code == 0) {
+                  // console.log(data.data.data);
+                  self.startAllData = data.data.data;
+                  this.$message({
+                    message: data.data.msg,
+                    type: "success"
+                  });
+                } else {
+                  this.$message({
+                    message: data.data.msg,
+                    type: "warning"
+                  });
+                }
+              })
+              .catch(err => {
+                this.extCatch(err, this.imgUpload);
+              });
+          }
+        }
+      );
+    },
+    //视频文件上传
+    moiveUpload(e) {
+      var self = this;
+      let formData = new FormData();
+      formData.append("file", e.target.files[0]);
+      formData.append("id", self.startAllData.id);
+      this.Axios.post("/promotion/generalizeAppstart/upload", formData).then(
+        data => {
+          if (data.data.code == 0) {
+            this.created_fun();
+          }
+        }
+      );
+    },
+    //选择更换点击产品
+    selectedOnePro(elem) {
+      var self = this;
+      // console.log(elem);
+      self.proSelectId = elem.id;
+    },
+    //选择产品确定按钮
+    changePro() {
+      var self = this;
+      self.startAllData.dataId = self.proSelectId;
+      this.Axios.post("/promotion/generalizeAppstart", self.startAllData)
+        .then(data => {
+          if (data.data.code == 0) {
+            self.startAllData = data.data.data;
+            if (self.startAllData.dataType == 1) {
+              self.startAllData.dataId = parseInt(self.startAllData.dataId);
+              self.proDisplayName();
+              self.selectone_dialog = false;
+            }
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.changePro);
+        });
     }
   }
 };
@@ -299,11 +580,16 @@ $font-color = #999
     border-radius 5px
     .startimg
       cursor pointer
+      width 360px
+      height 640px
+      background-color $font-color
       img
-        width 90%
+        width 100%
+        border-radius 5px
     .startimgText
       margin-top 24px
       text-align center
+      width 360px
       color #a8a8a8
     .rightdiv
       line-height 50px
@@ -315,12 +601,42 @@ $font-color = #999
         float right
     .selectone_img_div
       margin 10px 0 10px 0
-    .carou_subbottom_img
+    .carou_subbottom_img_border
       width 100px
       height 75px
       float left
-      margin-right 5px
+      margin-right 10px
       border 1px solid red
+      border-radius 5px
+      cursor pointer
+      position relative
+      border-radius 5px
+      img
+        height 75px
+        border-radius 5px
+    .carou_subbottom_img
+      width 102px
+      height 77px
+      float left
+      margin-right 10px
+      border-radius 5px
+      cursor pointer
+      position relative
+      border-radius 5px
+      img
+        height 78px
+        border-radius 5px
+    .proImgNum
+      position absolute
+      top 64px
+      right -1px
+      margin-top -11px
+      background-color #999
+      opacity 0.8
+      color #ffffff
+      font-size 12px
+      padding 0 5px
+      border-bottom-right-radius 5px
   .item
     width 100%
     margin-bottom 30px
@@ -330,4 +646,15 @@ $font-color = #999
       color #999
     .text
       white-space nowrap
+  .proImgDiv
+    max-height 430px
+    overflow-y auto
+    overflow-x hidden
+    .loading
+      text-align center
+      padding 20px
+  .startImgClass
+    width 360px
+    height 640px
+    object-fit fill
 </style>

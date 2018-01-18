@@ -1,11 +1,10 @@
-// 动态属性参数还未校验
 <template>
-  <div class="addProduction">
+  <div class="editProduction" ref="editProduction">
     <div class="headerWrapper">
       <el-breadcrumb separator-class="el-icon-arrow-right">
         <el-breadcrumb-item>Artist</el-breadcrumb-item>
         <el-breadcrumb-item>产品管理</el-breadcrumb-item>
-        <el-breadcrumb-item>新增产品</el-breadcrumb-item>
+        <el-breadcrumb-item>编辑产品</el-breadcrumb-item>
       </el-breadcrumb>
     </div>
 
@@ -35,7 +34,7 @@
       <div class="content">
         <div class="item">
           <span class="text">产品类别：</span>
-          <el-select v-model="submitData.productClassId" @change="kindChange" size="small" style="width:100%">
+          <el-select v-model="submitData.productClassId" @change="kindChange" size="small" :disabled="true" style="width:100%">
             <el-option
               v-for="kind in allKind.list"
               :key="kind.id"
@@ -188,13 +187,13 @@
         <el-table
           border
           :data="submitData.specificationList"
-          style="width: 100%">
+          style="width: 100%"
+          max-height="300">
           <template v-for="item in allAttrsBykindId.attrList">
             <template v-if="item.attrType == 3">
               <el-table-column
                 align="center"
-                :label="item.attrCnName"
-                max-height="300">
+                :label="item.attrCnName">
                 <template slot-scope="scope">
                   <el-input v-model.trim="scope.row.specificationJson[item.id]" size="mini"></el-input>
                 </template>
@@ -230,7 +229,8 @@
     </div>
     
     <div class="btnWrapper">
-      <el-button type="primary" @click="submit" :disabled="btnStatus">添 加</el-button>
+      <el-button @click="goBack">返 回</el-button>
+      <el-button type="primary" @click="submit" :disabled="btnStatus">确认修改</el-button>
     </div>
 
     <input type="file" hidden id="uploadFile" @change.stop="uploadFile" ref="fileInput">
@@ -240,11 +240,20 @@
 <script type="text/ecmascript-6">
 import utils from '@/commons/Batar/utils'
 export default {
+  props: {
+    selProId: {
+      type: Number
+    },
+    proDetailLayer: {
+      type: Boolean
+    }
+  },
   data() {
     return {
+      proDetailLayerClone: this.proDetailLayer,
       allPromotions: [], // 产品推广种类
       addProToKind: {
-        productIds: []
+        productId: null
       },
       allImgs: [],
       tempSrc: null,
@@ -272,23 +281,28 @@ export default {
           {
             specificationJson: {}
           }
-        ] // 所有规格
+        ] // 规格属性
       },
+      proDetailInfo: {}, // 获取的产品详情
       specificationAttrs: [], // 规格属性
       selPromotions: [],
-      btnStatus: true
+      btnStatus: true,
+      tempClassId: null
     }
   },
   methods: {
+    goBack() {
+      this.proDetailLayerClone = false
+    },
     submit() {
       if (this.checkSubmit()) {
         this.Axios
-          .post('/product/product', this.submitData)
+          .put(`/product/product/${this.submitData.id}`, this.submitData)
           .then(res => {
             let result = res.data
             if (result.code == 0) {
-              this.addProToKind.productIds[0] = result.data.id
-              this.addProductionToKind()
+              this.addProToKind.productId = this.proDetailInfo.id
+              this.editProductionToKind()
             } else {
               this.$message.error(result.msg)
             }
@@ -298,14 +312,14 @@ export default {
           })
       }
     },
-    addProductionToKind() {
+    editProductionToKind() {
       this.Axios
-        .post('/promotion/category/product', this.addProToKind)
+        .put('/promotion/category/product', this.addProToKind)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
-            this.resetBaseData()
-            this.$message.success('添加成功')
+            this.$message.success('修改成功')
+            this.proDetailLayerClone = false
           } else {
             this.$message.error(result.msg)
           }
@@ -384,9 +398,6 @@ export default {
           this.extCatch(err, this.uploadFile)
         })
     },
-    kindChange() {
-      this.getAttrByKindId(this.submitData.productClassId)
-    },
     delPic(src) {
       utils.delDataFromArray(this.allImgs, src)
       let resultSrc = src.split(this.fileAddress)[1] // 截取后的字符串
@@ -403,64 +414,11 @@ export default {
     outImg() {
       this.tempSrc = null
     },
-    getAllKind() {
-      let params = {
-        PRS: {
-          size: 9999
-        }
-      }
-      this.Axios
-        .get('/product/productClass', params)
-        .then(res => {
-          let result = res.data
-          if (result.code == 0) {
-            this.allKind = result.data
-            if (this.allKind.list.length > 0) {
-              this.submitData.productClassId = this.allKind.list[0].id
-              this.getAttrByKindId(this.submitData.productClassId)
-            }
-          } else {
-            this.$message.error(result.msg)
-          }
-        })
-        .catch(err => {
-          this.extCatch(err, this.getAllKind)
-        })
-    },
-    getAttrByKindId(id) {
-      this.Axios
-        .get(`/product/productClass/${id}`)
-        .then(res => {
-          let result = res.data
-          if (result.code == 0) {
-            this.allAttrsBykindId = result.data
-            this.resetData()
-            this.allAttrsBykindId.attrList.forEach(obj => {
-              if (obj.attrType == 1) {
-                this.baseInfoLength++
-                // this.$set(this.submitData, obj.id, null)
-                this.$set(this.submitData.productExtend.valueJson, obj.id, '')
-              } else if (obj.attrType == 2) {
-                this.propertyLength++
-                this.$set(this.submitData.productExtend.valueJson, obj.id, '')
-              } else if (obj.attrType == 3) {
-                this.specificationLength++
-                this.specificationAttrs.push(obj.id)
-                this.$set(
-                  this.submitData.specificationList[0].specificationJson,
-                  obj.id,
-                  null
-                )
-              }
-            })
-            this.checkPropAndSpecLength()
-          } else {
-            this.$message.error(result.msg)
-          }
-        })
-        .catch(err => {
-          this.extCatch(err, this.getAttrByKindId)
-        })
+    checkPropAndSpecLength() {
+      if (this.propertyLength == 0)
+        this.$delete(this.submitData, 'productExtend')
+      if (this.specificationLength == 0)
+        this.$delete(this.submitData, 'specificationList')
     },
     resetData() {
       this.baseInfoLength = 0
@@ -494,11 +452,91 @@ export default {
         }
       })
     },
-    checkPropAndSpecLength() {
-      if (this.propertyLength == 0)
-        this.$delete(this.submitData, 'productExtend')
-      if (this.specificationLength == 0)
-        this.$delete(this.submitData, 'specificationList')
+    kindChange() {
+      this.getAttrByKindId(this.submitData.productClassId, false)
+    },
+    getDetail() {
+      this.Axios
+        .get(`/product/product/${this.selProId}`)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.proDetailInfo = result.data
+            this.getAllKind(this.proDetailInfo.productClassId)
+            this.getAllPromotions()
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getDetail)
+        })
+    },
+    getAllKind(classId) {
+      let params = {
+        PRS: {
+          size: 9999
+        }
+      }
+      this.Axios
+        .get('/product/productClass', params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.allKind = result.data
+            if (this.allKind.list.length > 0) {
+              this.submitData.productClassId = classId // 显示产品类别
+              this.getAttrByKindId(this.submitData.productClassId, true) // 获取当前类别下的所有属性
+            }
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getAllKind)
+        })
+    },
+    getAttrByKindId(id, firstLoad) {
+      this.Axios
+        .get(`/product/productClass/${id}`)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.allAttrsBykindId = result.data
+            this.resetData()
+            this.allAttrsBykindId.attrList.forEach(obj => {
+              if (obj.attrType == 1) {
+                this.baseInfoLength++
+                this.$set(this.submitData.productExtend.valueJson, obj.id, '')
+              } else if (obj.attrType == 2) {
+                this.propertyLength++
+                this.$set(this.submitData.productExtend.valueJson, obj.id, '')
+              } else if (obj.attrType == 3) {
+                this.specificationLength++
+                this.specificationAttrs.push(obj.id) // 存储所有规格属性，以便添加新规格所用
+                this.$set(
+                  this.submitData.specificationList[0].specificationJson,
+                  obj.id,
+                  null
+                )
+              }
+            })
+            this.checkPropAndSpecLength()
+            if (firstLoad) {
+              // 开始组装submit数据
+              this.tempClassId = this.proDetailInfo.productClassId
+              this.submitData = this.proDetailInfo
+              this.submitData.imageList.forEach(item => {
+                this.allImgs.push(`${this.fileAddress}${item.imageUrl}`)
+              })
+            }
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getAttrByKindId)
+        })
     },
     getAllPromotions() {
       this.Axios
@@ -507,9 +545,12 @@ export default {
           let result = res.data
           if (result.code == 0) {
             this.allPromotions = result.data
-            this.allPromotions.forEach(item => {
-              this.selPromotions.push([])
-            })
+            if (result.data.length > 0) {
+              this.allPromotions.forEach(item => {
+                this.selPromotions.push([])
+              })
+              this.getCategorysByProId()
+            }
           } else {
             this.$message.error(result.msg)
           }
@@ -517,11 +558,44 @@ export default {
         .catch(err => {
           this.extCatch(err, this.getAllPromotions)
         })
+    },
+    getCategorysByProId() {
+      this.Axios
+        .get(`/promotion/category/product/${this.proDetailInfo.id}`)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            if (result.data.length > 0) {
+              // 将后台返回的选中推广类别添加到selPromotions中
+              result.data.forEach(selId => {
+                for (let i = 0; i < this.allPromotions.length; i++) {
+                  if (selId == this.allPromotions[i].id) {
+                    this.selPromotions[i].push(selId)
+                    break
+                  }
+                  if (this.allPromotions[i].categoryList.length > 0) {
+                    for (
+                      let j = 0;
+                      j < this.allPromotions[i].categoryList.length;
+                      j++
+                    ) {
+                      if (selId == this.allPromotions[i].categoryList[j].id) {
+                        this.selPromotions[i].push(selId)
+                        break
+                      }
+                    }
+                  }
+                }
+              })
+            }
+          } else {
+            this.$message(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getCategorysByProId)
+        })
     }
-  },
-  created() {
-    this.getAllKind()
-    this.getAllPromotions()
   },
   watch: {
     allImgs(val) {
@@ -534,6 +608,18 @@ export default {
     },
     allKindList(val) {
       val.length > 0 ? (this.btnStatus = false) : (this.btnStatus = true)
+    },
+    proDetailLayer(val) {
+      this.proDetailLayerClone = val
+      if (val) {
+        this.getDetail()
+      } else {
+        this.allImgs = []
+        this.selPromotions = []
+      }
+    },
+    proDetailLayerClone(val) {
+      this.$emit('syncLayerStatus', val)
     }
   },
   computed: {
@@ -558,7 +644,7 @@ export default {
 $base-color = rgb(230, 14, 50)
 $base-box-shadow = 0 0 10px #e5e5e5
 $base-border-radius = 5px
-.addProduction
+.editProduction
   color #999999
   .picWrapper
     border-radius $base-border-radius

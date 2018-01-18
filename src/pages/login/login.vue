@@ -1,7 +1,7 @@
 <template>
   <div class="login">
     <div class="bgWrapper">
-      <img class="bgImg" src="../../commons/imgs/login_bg.jpg">
+      <img class="bgImg" src="static/imgs/login_bg.jpg">
       <span class="desc">
         <i class="iconfont logoIcon"></i>
         <span class="textOne">Artist 后台管理系统</span>

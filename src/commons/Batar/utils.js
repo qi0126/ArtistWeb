@@ -1,10 +1,4 @@
-/**
- * ============================ @前端开发小组-Batar =============================
- */
 export default {
-  /**
-   * 格式化参数
-   */
   fomartParams(obj) {
     let newKeys = Object.keys(obj).sort()
     let newObj = {}
@@ -24,25 +18,15 @@ export default {
     result = result.substring(0, result.length - 1)
     return result;
   },
-  /**
-   * 判断是否为空对象
-   */
   isEmptyObj(obj) {
     let is = false;
     if (obj) {
-      if (JSON.stringify(obj) === '{}') {
-        is = true;
-      } else {
-        is = false;
-      }
+      JSON.stringify(obj) === '{}' ? is = true : is = false
     } else {
       is = true;
     }
     return is;
   },
-  /**
-   * 设置cookie
-   */
   setCookie(c_name, value, expiredays) {
     let date = new Date();
     date.setTime(date.getTime() + expiredays * 1000);
@@ -52,9 +36,6 @@ export default {
       document.cookie = `${c_name}=${value}`;
     }
   },
-  /**
-   * 获取cookie
-   */
   getCookie(c_name) {
     if (document.cookie.length > 0) {
       let c_start = document.cookie.indexOf(c_name + "=");
@@ -67,18 +48,12 @@ export default {
     }
     return "";
   },
-  /**
-   * 删除cookie
-   */
   delCookie(name) {
     var exp = new Date();
     exp.setTime(exp.getTime() + (-1 * 24 * 60 * 60 * 1000));
     var cval = this.getCookie(name);
     document.cookie = name + "=" + cval + "; expires=" + exp.toGMTString();
   },
-  /**
-   * 图片转base64
-   */
   encodeBase64(e) {
     let p = new Promise((resolve, reject) => {
       let uploadFile = e.target.files[0];
@@ -90,10 +65,15 @@ export default {
     })
     return p;
   },
-  /**
-   * 重置file控制值
-   */
-  reset(e) {
-    e.target.value = ''
+  reset(element) {
+    element.value = ''
+  },
+  delDataFromArray(array, data) {
+    for (let i = 0; i < array.length; i++) {
+      if (array[i] == data) {
+        array.splice(i, 1);
+        break;
+      }
+    }
   }
 }

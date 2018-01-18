@@ -1,5 +1,5 @@
 <template>
-    <div class="carouselBigDiv">
+    <div class="carouselBigDiv" v-loading="loading">
         <el-breadcrumb separator-class="el-icon-arrow-right" class="title">
             <el-breadcrumb-item :to="{ path: '/' }">Artist</el-breadcrumb-item>
             <el-breadcrumb-item>推广项目</el-breadcrumb-item>
@@ -54,12 +54,12 @@
                         </el-col>
                         <el-col :span="22">
                             <div class="img_upload_btn" @click="fileupload">+选择从电脑上传</div>
-                            <div class="img_upload_btn" @click="uploaded_file">+选择已上传图片</div>
+                            <div class="img_upload_btn" @click="uploaded_file" >+选择已上传图片</div>
                         </el-col>
                         <!-- 新轮播从电脑上传文件 -->
-                        <input type="file" ref="newImgInput" v-show="0" @change="newImgUpload" multiple/>
+                        <input type="file" ref="newImgInput" v-show="0" @change="newImgUpload" multiple accept="image/*"/>
                     </div>
-                    <div class="edit_carousel_div" v-for="item in carouselData" :key="item.id">
+                    <div class="edit_carousel_div" v-for="item in carouselData.list" :key="item.id">
                         <el-col :span="2">
                             <div class="title_name">
                                 标 题：
@@ -109,7 +109,7 @@
                                                 <span class="carou_sub_delbtn" @click="delImgDa(subimg)"><i class="iconfont">&#xe656;</i></span>
                                             </div>
                                             <div class="carou_sub_center">
-                                                <img :src="fileAddress+subimg.imageUrl" class="carou_subcenter_img"/>
+                                                <img :src="fileAddress+'/'+subimg.imageUrl" class="carou_subcenter_img"/>
                                             </div>
                                             <div class="carou_sub_bottom">
                                                 <div>
@@ -124,15 +124,23 @@
                                                     <span v-if="subimg.type == 2">
                                                         <el-button type="primary" plain class="carou_sub_selectbtn" @click="selectcarou_btn(subimg)" size="small">选择类别</el-button>
                                                         <div class="carou_subbottom_txt" v-if="modalShow">
-                                                            <span class="carou_subbottom_span">已选择类别 : </span>{{subimg.categoryName}}
+                                                            <span v-if="subimg.typeContent != ''"><span class="carou_subbottom_span">已选择类别 : </span>{{subimg.categoryName}}</span>
+                                                            <span v-else class="red_font">未选择类别</span>
                                                         </div>
                                                     </span>
                                                     <span v-if="subimg.type == 1">
                                                         <el-button type="primary" plain class="carou_sub_selectbtn" @click="selectonepro(subimg)" size="small">选择单品</el-button>
                                                         <div class="carou_subbottom_txt" v-if="modalShow">
-                                                            <img src="/static/imgs/syBg.png" class="carou_subbottom_img"/>
-                                                            {{subimg.productName}}<br/>
+                                                          <div v-if="subimg.typeContent != ''">
+                                                              <img :src="[subimg.headImage == null?'/static/imgs/syBg.png':fileAddress+'/'+subimg.headImage]" class="carou_subbottom_img"/>
+                                                            <!-- <img src="/static/imgs/syBg.png" class="carou_subbottom_img"/> -->
+                                                            <p  v-if="modalShow">{{subimg.productName}}</p>
                                                             <span class="carou_subbottom_span">{{subimg.productNumber}}</span>
+                                                          </div>
+                                                          <div v-else>
+                                                            <img src="/static/imgs/syBg.png" class="carou_subbottom_img"/>
+                                                            <p class="red_font">未选择产品</p>
+                                                          </div>
                                                         </div>
                                                     </span>
                                                     <div  v-if="subimg.type == 0" class="carou_subbottom_txt">
@@ -155,16 +163,21 @@
             <div class="pagination_div">
                 <el-pagination
                 background
-                :current-page.sync="currentPage2"
+                :current-page.sync="currentPage"
                 :page-sizes="[3, 6, 9]"
-                :page-size="100"
-                layout="sizes, prev, pager, next"
-                :total="15">
+                :page-size="pageSize"
+                layout="total,sizes, prev, pager, next,jumper"
+                :total="promoNumber"
+                @current-change="currentChange"
+                @size-change="sizeChange"
+                >
                 </el-pagination>
+                
             </div>
+            
         </div>
         <!-- 从电脑上传文件 -->
-        <input type="file" ref="imgupload_input" v-show="0" @change="imgloadFile" multiple/>
+        <input type="file" ref="imgupload_input" v-show="0" @change="imgloadFile" multiple accept="image/*"/>
         <!-- 选择已上传图片 -->
         <el-dialog
         title="选择已上传的图片"
@@ -172,13 +185,13 @@
         width="1040px">
             <el-row :gutter="20">
               <el-checkbox-group v-model="selectedImgList">
-                <el-col :span="8" v-for="item in uploadedImageList" :key="item">
+                <el-col :span="8" v-for="item in uploadedImageList" :key="item.id">
                   <div class="img_bigdiv">
                     <div class="img_div">
-                      <el-checkbox :label="item" :key="item">&nbsp;</el-checkbox>
-                      <div class="delimgBtn" @click="delimgBtn(item)">X</div>
+                      <el-checkbox :label="item.imageUrl">&nbsp;</el-checkbox>
+                      <div class="delimgBtn" @click="delimgBtn(item)"><i class="iconfont">&#xe656;</i></div>
                     </div>
-                    <img :src="item" class="image">
+                    <img :src="fileAddress+item.imageUrl" class="image">
                   </div>
                 </el-col>
               </el-checkbox-group>
@@ -198,8 +211,8 @@
                 <div class="parent">
                 <el-radio v-model="kind_checked" :label="kind.id">{{kind.categoryName}}</el-radio>
                 </div>
-                <div class="child" v-show="kind.children != undefined">
-                【 <el-radio v-model="kind_checked" class="childText" :label="child.id" v-for="child in kind.children" :key="child.id">{{ child.categoryName }}</el-radio> 】
+                <div class="child" v-show="kind.categoryList.length != 0">
+                【 <el-radio v-model="kind_checked" class="childText" :label="child.id" v-for="child in kind.categoryList" :key="child.id">{{ child.categoryName }}</el-radio> 】
                 </div>
             </div>
             <span slot="footer" class="dialog-footer">
@@ -219,18 +232,24 @@
                     v-model="selecone_search" size="small">
                     <i slot="prefix" class="el-input__icon el-icon-search"></i>
                 </el-input>
-                <el-row :gutter="20" v-loading="productLoading">
-                    <el-col :span="8" v-for="(item,index) in productData" :key="index">
-                        <div class="selectone_img_div" @click="proClickId(item)">
-                            <img src="/static/imgs/syBg.png" :class="[item.id==proClickedId  ? 'carouSubbottomImg_border' : 'carouSubbottomImg']"/>
-                            {{item.productName}}<br/>
-                            <span class="carou_subbottom_span">{{item.productNumber}}</span>
-                        </div>
-                    </el-col>
-                </el-row>
+                <div class="proImgDiv">
+                  <el-row :gutter="20" v-loading="productLoading">
+                      <el-col :span="8" v-for="(item,index) in productData" :key="index">
+                          <div class="selectone_img_div" @click="proClickId(item)">
+                              <div :class="[item.id==proClickedId  ? 'carouSubbottomImg_border' : 'carouSubbottomImg']">
+                                <img :src="[item.headImage != null?fileAddress+item.headImage:'/static/imgs/syBg.png']" />
+                                <div class="proImgNum">共{{item.imageCount}}张</div>
+                              </div>
+                              {{item.productName}}<br/>
+                              <span class="carou_subbottom_span">{{item.productNumber}}</span>
+                          </div>
+                      </el-col>
+                  </el-row>
+                  <div class="loading">{{proimgText?"正在加载中...":"产品已经加载完成！"}}</div>
+                </div>
             </div>
             <span slot="footer" class="dialog-footer">
-                <el-button @click="selectone_dialog = false" size="small">取 消</el-button>
+                <el-button @click="proCancelFun" size="small">取 消</el-button>
                 <el-button type="primary" @click="proClickFun" size="small">确 定</el-button>
             </span>
         </el-dialog>
@@ -269,7 +288,7 @@ export default {
       addCarouselTF: false, //打开新增轮播
       carouselData: [], //轮播列表数据
 
-      modalShow: true,
+      modalShow:true,//数据打散重新渲染
 
       newCarouselName: "",
       fullscreenLoading: false, //图片上传加载中
@@ -307,7 +326,7 @@ export default {
       newTime: "",
       uploaded_file_dislog: false, //选择已上传图片
       img_checked: false, //选择已上传图片打勾
-      currentPage2: 1, //分页中当前第几页
+      currentPage: 1, //分页中当前第几页
       options: [
         //选择轮播属性
         {
@@ -329,6 +348,9 @@ export default {
 
       promoSourseData: [], //推广类别原始数据
       allPromoData: [], // 推广类别处理后数据
+      promoNumber: 0, //分页中推广类别共有多少轮播
+      pageSize: 3, //分页中每一页有多少个轮播
+      pageNo: 1, //分页中默认为第一页
       kind_checked: "", //推广类别选中项
       selectpromo_dialog: false, //选择类别的弹出框
       selectImgData: [], //选择图片轮片的数据（单品和推广类别要用）
@@ -344,9 +366,14 @@ export default {
       selectedImgList: [], //选择已上传图片的数组
       selectedCarouselData: [], //选择单品原轮播ID
       productData: [], //选择单品数据列表
+      productAllData: [], //产品接口的整个数据
       productLoading: false, //选择单品加载数据
       proClickedId: "", //已选择单品的ID
-      urlSaveData: [] //轮播图片地址数据保存
+      // urlSaveData: [] //轮播图片地址数据保存
+      scroll: "", //滚动条高度
+      proimgText: true, //产品分页加载显示提示true显示“正在加载中...”，false显示“产品已经加载完成！”
+      EventListenerTf: true, //产品分页已加监听，true为未加载监听，false为已加载监听
+      loading: true //页面加载中
     };
   },
   created() {
@@ -357,109 +384,154 @@ export default {
       let self = this;
       self.addCarouBtnTF = false; //增加轮播按钮禁用或有效
       self.addCarouselTF = false; //打开新增轮播
-      self.newCarouselName = "";//新轮播名字
-      self.newTime = "";//新轮播播放时间
+      self.newCarouselName = ""; //新轮播名字
+      self.newTime = ""; //新轮播播放时间
+      self.currentPage = 1; //分页中默认为第一页
+      self.carouselLoad(self.pageSize, 1);
+    },
+    //轮播所有数据
+    carouselLoad(size, num) {
+      var self = this;
       let params = {
         PRS: {
-          page: 1,
-          size: 10
+          page: num,
+          size: size
         }
       };
-      this.Axios
-        .get("/promotion/carousel", params)
+      this.Axios.get("/promotion/carousel", params)
         .then(data => {
           if (data.data.code == 0) {
             self.carouselData = data.data.data;
-            // console.log(self.carouselData);
+            self.proDisplayName();
+            self.promoNumber = self.carouselData.total;
+            self.loading = false;
           }
         })
         .catch(err => {
           this.extCatch(err, this.create_fun);
         });
-      this.$nextTick(() => {
-        self.proData();
-        self.promoData();
-        setTimeout(function() {
-          self.urlSaveData = [];
-          for (var i = 0; i < self.carouselData.length; i++) {
-            if (self.carouselData[i].carouselImages.length != 0) {
-              for (
-                var j = 0;
-                j < self.carouselData[i].carouselImages.length;
-                j++
-              ) {
-                //如果轮轓图为单个产品类型为1
-                if (self.carouselData[i].carouselImages[j].type == 1) {
-                  if (
-                    self.carouselData[i].carouselImages[j].typeContent != ""
-                  ) {
-                    var proId = parseInt(
-                      self.carouselData[i].carouselImages[j].typeContent
-                    );
-                    for (var k = 0; k < self.productData.length; k++) {
-                      if (proId == self.productData[k].id) {
-                        //产品的名称和编码
-                        self.carouselData[i].carouselImages[j].productName =
-                          self.productData[k].productName;
-                        self.carouselData[i].carouselImages[j].productNumber =
-                          self.productData[k].productNumber;
-                      }
-                    }
-                  }
-                }
-                //如果轮轓图为推广类别类型为2
-                if (self.carouselData[i].carouselImages[j].type == 2) {
-                  var proId = parseInt(
-                    self.carouselData[i].carouselImages[j].typeContent
-                  );
-                  for (var k = 0; k < self.promoSourseData.length; k++) {
-                    if (proId == self.promoSourseData[k].id) {
-                      //推广类别的名称
-                      self.carouselData[i].carouselImages[j].categoryName =
-                        self.promoSourseData[k].categoryName;
-                    }
-                  }
-                }
-              }
-            }
-          }
-          // console.log(self.urlSaveData);
-          self.modalShow = false;
-          self.modalShow = true;
-        }, 1000);
-      });
+      self.proData();
+      self.promoData();
     },
     //所有产品列表数据
     proData() {
       var self = this;
-      this.Axios
-        .get("/product/product")
+      let params = {
+        PRS: {
+          page: 1,
+          size: 15
+        }
+      };
+      this.Axios.get("/product/product", params)
         .then(data => {
           if (data.data.code == 0) {
             self.productData = data.data.data.list;
+            self.productAllData = data.data.data;
             self.productLoading = false;
-            // console.log(self.productData);
-            return self.productData;
           }
         })
         .catch(err => {
           this.extCatch(err, this.proData);
         });
     },
+
     //推广类别数组
     promoData() {
       var self = this;
-      this.Axios
-        .get("/promotion/category")
+      this.Axios.get("/promotion/category")
         .then(data => {
           if (data.data.code == 0) {
             self.promoSourseData = data.data.data;
+            self.proDisplayName(); //保存推广类别名称
             self.productLoading = false;
-            // console.log(data.data.data);
           }
         })
         .catch(err => {
           this.extCatch(err, this.promoData);
+        });
+    },
+
+    //保存轮播图片中的产品和推广类别名字
+    proDisplayName() {
+      var self = this;
+
+      var contentData = self.carouselData.list;
+      for (var i = 0; i < contentData.length; i++) {
+        // console.log(contentData[i])
+        if (contentData[i].carouselImages.length != 0) {
+          for (var j = 0; j < contentData[i].carouselImages.length; j++) {
+            //如果轮轓图为单个产品类型为1
+            if (contentData[i].carouselImages[j].type == 1) {
+              if (contentData[i].carouselImages[j].typeContent != "") {
+                var proId = parseInt(
+                  contentData[i].carouselImages[j].typeContent
+                );
+                //读取proBase接口方法
+                self.proBase(i, j, proId);
+              }
+            }
+            //如果轮轓图为推广类别类型为2
+            if (contentData[i].carouselImages[j].type == 2) {
+              var proId = parseInt(
+                contentData[i].carouselImages[j].typeContent
+              );
+              //遍历推广类别
+              for (var k = 0; k < self.promoSourseData.length; k++) {
+                //一级推广
+                if (proId == self.promoSourseData[k].id) {
+                  //推广类别的名称
+                  contentData[i].carouselImages[j].categoryName =
+                    self.promoSourseData[k].categoryName;
+                  break;
+                }
+                if (self.promoSourseData[k].categoryList.length != 0) {
+                  for (
+                    var p = 0;
+                    p < self.promoSourseData[k].categoryList.length;
+                    p++
+                  ) {
+                    if (proId == self.promoSourseData[k].categoryList[p].id) {
+                      contentData[i].carouselImages[j].categoryName =
+                        self.promoSourseData[k].categoryList[p].categoryName;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    //读取proBase接口方法
+    proBase(x, y, elem) {
+      var self = this;
+      var contentData = self.carouselData.list;
+      let params = {
+        PRS: {
+          ids: [elem]
+        }
+      };
+      this.Axios.get("/product/product/batch/base", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            contentData[x].carouselImages[y].productName =
+              data.data.data[0].productName;
+            contentData[x].carouselImages[y].productNumber =
+              data.data.data[0].productNumber;
+            contentData[x].carouselImages[y].headImage =
+              data.data.data[0].headImage;
+            self.modalShow = false;
+            self.modalShow = true;
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.proBase);
         });
     },
     //点击增加轮播按钮
@@ -471,11 +543,6 @@ export default {
     //上传新图片轮播
     fileupload() {
       var self = this;
-      self.$refs.newImgInput.click();
-    },
-    //上传新图片后
-    newImgUpload(e) {
-      var self = this;
       if (self.newCarouselName == "" || self.newTime == "") {
         this.$message({
           message: "新增轮播名称或轮播时间不能为空！",
@@ -483,29 +550,39 @@ export default {
         });
         return false;
       }
+      self.$refs.newImgInput.click();
+    },
+    //上传新图片后
+    newImgUpload(e) {
+      var self = this;
       self.fullscreenLoading = true;
       let formData = new FormData();
-      formData.append("file", e.target.files[0]);
+      for (var i = 0; i < e.target.files.length; i++) {
+        formData.append("file", e.target.files[i]);
+      }
+
       formData.append("type", 0);
-      this.Axios
-        .post(`${this.fileAddress}/image/upload`, formData)
-        .then(data => {
+      this.Axios.post(`${this.fileAddress}/image/upload`, formData).then(
+        data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data.url);
+            // console.log(data.data.data);
+            var imgList = [];
+            for (var j = 0; j < data.data.data.length; j++) {
+              imgList.push(data.data.data[j].url);
+            }
             let params = {
               title: self.newCarouselName,
-              image64: data.data.data.url,
+              images: imgList,
               dates: self.newTime
             };
+            // console.log(params);
             this.Axios.post("/promotion/carousel", params).then(data => {
               self.fullscreenLoading = false;
               if (data.data.code == 0) {
-                // console.log(data.data.data)
                 this.$message({
                   message: "创建轮播成功！",
                   type: "success"
                 });
-                self.fullscreenLoading = false;
                 this.created_fun();
               } else {
                 this.$message({
@@ -514,13 +591,15 @@ export default {
                 });
               }
             });
+            self.fullscreenLoading = false;
           } else {
             this.$message({
               message: data.data.msg,
               type: "warning"
             });
           }
-        });
+        }
+      );
     },
     //删除轮播确认弹出框
     delcarou(elem) {
@@ -539,7 +618,6 @@ export default {
       };
       this.Axios.delete("/promotion/carousel/" + delId, params).then(data => {
         if (data.data.code == 0) {
-          //   console.log(data.data.data);
           this.$message({
             message: data.data.msg,
             type: "success"
@@ -563,9 +641,8 @@ export default {
     //轮播中已上传图片选择
     uploadedImage(elem) {
       var self = this;
-
-      this.Axios
-        .get("/promotion/carousel/carouselImage")
+      self.selectCarouselData = elem;
+      this.Axios.get("/promotion/carousel/carouselImage")
         .then(data => {
           if (data.data.code == 0) {
             self.uploadedImageList = data.data.data;
@@ -585,21 +662,23 @@ export default {
     imgloadFile(e) {
       var self = this;
       self.fullscreenLoading = true;
-      // console.log(e.target.files);
       let formData = new FormData();
-      formData.append("file", e.target.files[0]);
+      for (var i = 0; i < e.target.files.length; i++) {
+        formData.append("file", e.target.files[i]);
+      }
       formData.append("type", 0);
-      this.Axios
-        .post(`${this.fileAddress}/image/upload`, formData)
-        .then(data => {
+      this.Axios.post(`${this.fileAddress}/image/upload`, formData).then(
+        data => {
           if (data.data.code == 0) {
+            var imgList = [];
+            for (var j = 0; j < data.data.data.length; j++) {
+              imgList.push(data.data.data[j].url);
+            }
             let params = {
-              carouselId: self.selectCarouselData.id,
-              imageUrl: data.data.data.url
+              id: self.selectCarouselData.id,
+              images: imgList
             };
-
-            this.Axios
-              .post("/promotion/carousel/carouselImage", params)
+            this.Axios.post("/promotion/carousel/carouselImage", params)
               .then(data => {
                 if (data.data.code == 0) {
                   this.$message({
@@ -624,7 +703,8 @@ export default {
               type: "warning"
             });
           }
-        });
+        }
+      );
     },
     //轮播中删除图片弹出框
     delImgDa(elem) {
@@ -642,22 +722,23 @@ export default {
           carouselImageId: delImgId
         }
       };
-      this.Axios
-        .delete("/promotion/carousel/carouselImage/" + delImgId, params)
-        .then(data => {
-          if (data.data.code == 0) {
-            this.$message({
-              message: data.data.msg,
-              type: "success"
-            });
-            self.created_fun();
-          } else {
-            this.$message({
-              message: data.data.msg,
-              type: "warning"
-            });
-          }
-        });
+      this.Axios.delete(
+        "/promotion/carousel/carouselImage/" + delImgId,
+        params
+      ).then(data => {
+        if (data.data.code == 0) {
+          this.$message({
+            message: data.data.msg,
+            type: "success"
+          });
+          self.created_fun();
+        } else {
+          this.$message({
+            message: data.data.msg,
+            type: "warning"
+          });
+        }
+      });
 
       self.fullscreenLoading = false;
       self.delCarouImg = false;
@@ -665,11 +746,19 @@ export default {
     //选择已上传图片文件弹出框
     uploaded_file() {
       var self = this;
-      this.Axios
-        .get("/promotion/carousel/carouselImage")
+      self.selectCarouselData = [];
+      if (self.newCarouselName == "" || self.newTime == "") {
+        this.$message({
+          message: "新增轮播名称或轮播时间不能为空！",
+          type: "warning"
+        });
+        return false;
+      }
+
+      this.Axios.get("/promotion/carousel/carouselImage")
         .then(data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data);
+            self.uploadedImageList = data.data.data;
             self.uploaded_file_dislog = true;
           } else {
             this.$message({
@@ -687,32 +776,10 @@ export default {
       var self = this;
       self.selectImgData = elem;
       self.kind_checked = parseInt(elem.typeContent);
-      this.Axios
-        .get("/promotion/category")
+      this.Axios.get("/promotion/category")
         .then(data => {
           if (data.data.code == 0) {
             self.allPromoData = data.data.data;
-            var data = self.allPromoData,
-              tree = (function(data, root) {
-                var r,
-                  o = {};
-                var temp_data = [];
-                data.forEach(function(a) {
-                  a.children = o[a.id] && o[a.id].children;
-                  o[a.id] = a;
-                  if (a.parentId == 0) {
-                    r = a;
-                    temp_data.push(a);
-                  } else {
-                    o[a.parentId] = o[a.parentId] || {};
-                    o[a.parentId].children = o[a.parentId].children || [];
-                    o[a.parentId].children.push(a);
-                  }
-                });
-                return temp_data;
-              })(data, null);
-            //无限级菜单拼接数据组tree
-            self.allPromoData = tree;
             // console.log(self.allPromoData);
           }
         })
@@ -729,8 +796,7 @@ export default {
         type: 2,
         typeContent: self.kind_checked
       };
-      this.Axios
-        .put("/promotion/carousel/carouselImage", params)
+      this.Axios.put("/promotion/carousel/carouselImage", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -757,15 +823,108 @@ export default {
       self.selectedCarouselData = elem;
       self.proClickedId = elem.typeContent;
       self.selectone_dialog = true;
+
+      if (self.EventListenerTf) {
+        //监听产品
+        setTimeout(function() {
+          var Imgdiv = document.getElementsByClassName("proImgDiv")[0];
+          Imgdiv.addEventListener("scroll", function() {
+            if (this.scrollHeight - this.scrollTop === this.clientHeight) {
+              self.proimgText = true;
+              var nextPage = self.productAllData.page + 1;
+              var pageSize = self.productAllData.size;
+              if ((nextPage - 1) * pageSize < self.productAllData.total) {
+                let params = {
+                  PRS: {
+                    page: nextPage,
+                    size: pageSize
+                  }
+                };
+                self.Axios.get("/product/product", params).then(data => {
+                  if (data.data.code == 0) {
+                    var tempData = self.productData.concat(data.data.data.list);
+                    self.productData = tempData;
+                    self.productAllData = data.data.data;
+                  } else {
+                    self.$message({
+                      message: data.data.msg,
+                      type: "warning"
+                    });
+                  }
+                });
+              } else {
+                self.nextPage = 0;
+                self.proimgText = false;
+                return false;
+              }
+            }
+            self.EventListenerTf = false;
+          });
+        }, 50);
+      }
     },
     //选择已上传图片数组
     uploadedSelectImg() {
       var self = this;
-      self.uploaded_file_dislog = false;
+      if (self.selectCarouselData.id) {
+        //轮播中选择已上传的图片
+        let params = {
+          id: self.selectCarouselData.id,
+          images: self.selectedImgList
+        };
+        this.Axios.post("/promotion/carousel/carouselImage", params)
+          .then(data => {
+            if (data.data.code == 0) {
+              // console.log(data.data.data);
+              this.$message({
+                message: data.data.msg,
+                type: "success"
+              });
+              self.selectedImgList = [];
+              self.uploaded_file_dislog = false;
+              self.created_fun();
+            } else {
+              this.$message({
+                message: data.data.msg,
+                type: "warning"
+              });
+            }
+          })
+          .catch(err => {
+            this.extCatch(err, this.uploadedSelectImg);
+          });
+      } else {
+        //新增轮播选择已上传的图片
+        let params = {
+          title: self.newCarouselName,
+          dates: self.newTime,
+          images: self.selectedImgList
+        };
+        this.Axios.post("/promotion/carousel", params)
+          .then(data => {
+            if (data.data.code == 0) {
+              // console.log(data.data.data);
+              this.$message({
+                message: data.data.msg,
+                type: "success"
+              });
+              self.selectedImgList = [];
+              self.uploaded_file_dislog = false;
+              self.created_fun();
+            } else {
+              this.$message({
+                message: data.data.msg,
+                type: "warning"
+              });
+            }
+          })
+          .catch(err => {
+            this.extCatch(err, this.uploadedSelectImg);
+          });
+      }
     },
     //删除已上传的图片
     delimgBtn(elem) {
-      // console.log(elem);
       var self = this;
       //只余下一张图片，不能被删除
       if (self.uploadedImageList.length == 1) {
@@ -775,13 +934,14 @@ export default {
         });
         return false;
       }
+      var delIds = [];
+      delIds.push(elem.id);
       let params = {
         PRS: {
-          imageUrl: elem
+          ids: delIds
         }
       };
-      this.Axios
-        .delete("/promotion/carousel/image", params)
+      this.Axios.delete("/promotion/carousel/image", params)
         .then(data => {
           if (data.data.code == 0) {
             self.uploadedImageList = data.data.data;
@@ -789,6 +949,7 @@ export default {
               message: "删除已上传图片成功！",
               type: "success"
             });
+            self.selectedImgList = [];
           } else {
             this.$message({
               message: data.data.msg,
@@ -808,8 +969,7 @@ export default {
         type: elem.type,
         typeContent: ""
       };
-      this.Axios
-        .put("/promotion/carousel/carouselImage", params)
+      this.Axios.put("/promotion/carousel/carouselImage", params)
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data);
@@ -837,8 +997,7 @@ export default {
         type: 0,
         typeContent: elem.typeContent
       };
-      this.Axios
-        .put("/promotion/carousel/carouselImage", params)
+      this.Axios.put("/promotion/carousel/carouselImage", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -873,8 +1032,7 @@ export default {
         typeContent: self.proClickedId
       };
 
-      this.Axios
-        .put("/promotion/carousel/carouselImage", params)
+      this.Axios.put("/promotion/carousel/carouselImage", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -893,6 +1051,14 @@ export default {
         .catch(err => {
           this.extCatch(err, this.proClickFun);
         });
+      self.productData = [];
+      self.productAllData = [];
+
+      self.selectone_dialog = false;
+    },
+    //选择产品取消按钮
+    proCancelFun() {
+      var self = this;
       self.selectone_dialog = false;
     },
     //修改名字和修改时间的事件
@@ -903,8 +1069,7 @@ export default {
         title: elem.title,
         dates: elem.dates
       };
-      this.Axios
-        .put("/promotion/carousel", params)
+      this.Axios.put("/promotion/carousel", params)
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data);
@@ -922,6 +1087,18 @@ export default {
         .catch(err => {
           this.extCatch(err, this.changeItem);
         });
+    },
+    //改变分页每页个数
+    sizeChange(e) {
+      var self = this;
+      self.pageSize = e;
+      self.carouselLoad(self.pageSize, self.pageNo);
+    },
+    //改变分页页码
+    currentChange(e) {
+      var self = this;
+      self.pageNo = e;
+      self.carouselLoad(self.pageSize, self.pageNo);
     }
   }
 };
@@ -957,6 +1134,8 @@ $font-color = #999
     width 100%
   .input_350
     width 350px
+  .iconfont
+    font-size 10px
   .carou_delbtn
     float right
     color $font-color
@@ -972,15 +1151,40 @@ $font-color = #999
       font-size 12px
     .carouSubbottomImg_border
       width 98px
-      height 73px
+      height 74px
       float left
-      margin-right 5px
+      margin-right 10px
+      cursor pointer
+      position relative
       border 1px solid red
+      border-radius 5px
+      img
+        width 98px
+        height 74px
+        border-radius 5px
     .carouSubbottomImg
       width 100px
-      height 75px
+      height 76px
       float left
-      margin-right 5px
+      margin-right 10px
+      cursor pointer
+      position relative
+      border-radius 5px
+      img
+        width 98px
+        height 74px
+        border-radius 5px
+    .proImgNum
+      position absolute
+      top 61px
+      right 0
+      margin-top -11px
+      background-color #999
+      opacity 0.8
+      color #ffffff
+      font-size 12px
+      padding 0 5px
+      border-bottom-right-radius 5px
   .add_carousel_div
     margin-top 10px
     width 100%
@@ -1052,6 +1256,7 @@ $font-color = #999
           height 60px
           float left
           margin-right 5px
+          border-radius 3px
   .title_name
     color $font-color
     text-align right
@@ -1121,6 +1326,13 @@ $font-color = #999
       color #999
     .text
       white-space nowrap
+  .proImgDiv
+    max-height 430px
+    overflow-y auto
+    overflow-x hidden
+    .loading
+      text-align center
+      padding 20px
 </style>
 
 

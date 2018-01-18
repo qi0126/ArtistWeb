@@ -18,6 +18,7 @@
             <el-menu
               :router="true"
               :unique-opened="true"
+              @select="handleSelect"
               :default-active="activeIndex">
               <div v-for="(item,index) in menus" :key="index">
                 <template v-if="item.childrens.length > 0">
@@ -54,7 +55,7 @@
 export default {
   data() {
     return {
-      activeIndex: '/index/production',
+      activeIndex: null,
       menus: [
         {
           title: '产品管理',
@@ -169,6 +170,22 @@ export default {
         }
       ]
     }
+  },
+  methods: {
+    handleSelect(key, keyPath) {
+      sessionStorage.setItem('currentPath', key)
+    },
+    initPath() {
+      let currentPath = sessionStorage.getItem('currentPath')
+      if (currentPath && currentPath != '') {
+        this.activeIndex = currentPath
+      } else {
+        this.activeIndex = '/index/production'
+      }
+    }
+  },
+  created() {
+    this.initPath()
   }
 }
 </script>
@@ -206,12 +223,13 @@ $base-color = rgb(230, 14, 50)
         border-radius 50%
       i.outLoginIcon:after
         content '\e654'
-        transition color .5s
+        transition color 0.5s
       i.outLoginIcon
         &:hover
           color $base-color
       .accoutName
         margin 0 50px 0 5px
+        font-size 12px
   .buttomWrapper
     display flex
     .leftWrapper
@@ -222,7 +240,7 @@ $base-color = rgb(230, 14, 50)
       overflow-x hidden
       position absolute
       top 50px
-      left 0 
+      left 0
       right 0
       bottom 0
       border-top-right-radius 8px

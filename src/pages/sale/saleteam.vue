@@ -55,7 +55,8 @@
                   accordion
                   :expand-on-click-node="false"  
                   highlight-current
-                  :render-content="renderContent">  
+                  :render-content="renderContent"
+                  v-loading="loading">  
                 </el-tree> 
                 <el-dialog
                   title="添加子团队"
@@ -232,7 +233,8 @@ export default {
       //多选框数据
       addteam_noman: [],
       checked_addteam: [],
-      teamManOverId: ""
+      teamManOverId: "",
+      loading:true,//网页加载中
     };
   },
   created() {
@@ -268,7 +270,8 @@ export default {
                 return temp_data;
               })(data, null);
             //无限级菜单拼接数据组tree
-            self.team_allsubdata = tree;
+            self.team_allsubdata = tree
+            self.loading = false
           }
         })
         .catch(err => {
@@ -690,6 +693,8 @@ $font-color = #999
       border 1px solid #d9d9d9
       border-top 0
       height 630px
+    .el-tree-node
+      height 100px
     .left_submenu_div
       padding 10px 16px 10px 16px
       border-top-left-radius 5px

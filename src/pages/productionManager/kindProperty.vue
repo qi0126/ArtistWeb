@@ -17,7 +17,9 @@
             <el-tree
               :data="treeDatas"
               :props="defaultProps"
+              :highlight-current="true"
               node-key="id"
+              @node-click="clickKind"
               :render-content="renderContent">
             </el-tree>
           </div>
@@ -27,8 +29,11 @@
         <div class="title">类别属性</div>
         <div class="myTable">
           <el-table
-            :data="tableDatas"
             border
+            ref="tableElement"
+            :data="tableDatas"
+            @select="handleSelectionChange"
+            @select-all="handleSelectionAllChange"
             style="width: 100%">
             <el-table-column
               type="selection"
@@ -36,43 +41,73 @@
             </el-table-column>
             <el-table-column
               label="中文名称"
-              prop="chineseName"
+              prop="attrCnName"
               align="center">
             </el-table-column>
             <el-table-column
               label="英文名称"
-              prop="englishName"
+              prop="attrEnName"
               align="center">
             </el-table-column>
             <el-table-column
               label="数据类型"
-              prop="dataType"
               align="center">
+              <template slot-scope="scope">
+                <span v-show="scope.row.dataType == 10">数字</span>
+                <span v-show="scope.row.dataType == 20">字符串</span>
+                <span v-show="scope.row.dataType == 30">数组（数字）</span>
+                <span v-show="scope.row.dataType == 40">数组（字符串）</span>
+              </template>
             </el-table-column>
             <el-table-column
               label="字典数据"
-              prop="dictionaryData"
               align="center">
+              <template slot-scope="scope">
+                <span v-for="item in scope.row.dictDataObject" :key="item.value">
+                  {{ item.text }}
+                </span>
+              </template>
             </el-table-column>
             <el-table-column
               label="属性类型"
               prop="propertyType"
               align="center">
+              <template slot-scope="scope">
+                <span v-show="scope.row.attrType == 1">普通属性</span>
+                <span v-show="scope.row.attrType == 2">可选属性</span>
+                <span v-show="scope.row.attrType == 3">规格属性</span>
+              </template>
             </el-table-column>
             <el-table-column
               label="是否必填"
               align="center"
               width="192">
               <template slot-scope="scope">
-                <el-radio-group v-model="scope.row.isRequire">
-                  <el-radio :label="true">是</el-radio>
-                  <el-radio :label="false">否</el-radio>
+                <el-radio-group v-model="scope.row.isRequired" @change="isRequireChange(scope.row.id,scope.row.isRequired)">
+                  <el-radio :label="1">是</el-radio>
+                  <el-radio :label="0">否</el-radio>
                 </el-radio-group>
               </template>
             </el-table-column>
           </el-table>
         </div>
       </div>
+    </div>
+
+    <div class="dialogWrapper">
+      <el-dialog
+        title="新增类目"
+        :visible.sync="tableDialog"
+        width="20%">
+        <div class="addKindWrapper">
+          <span class="title">类目名称：</span>
+          <el-input size="small" v-model.trim="addKindName" placeholder="请输入产品类目名称"></el-input>
+        </div>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="tableDialog = false">取 消</el-button>
+          <el-button type="primary" @click="addKindConfirm">确 定</el-button>
+        </span>
+      </el-dialog>
     </div>
   </div>
 </template>
@@ -81,94 +116,210 @@
 export default {
   data() {
     return {
-      treeDatas: [
-        {
-          id: 1,
-          name: '黄金',
-          children: [
-            {
-              id: 11,
-              name: '戒指',
-              children: [
-                {
-                  id: 111,
-                  name: '子戒指1'
-                },
-                {
-                  id: 112,
-                  name: '子戒指2'
-                }
-              ]
-            },
-            {
-              id: 12,
-              name: '项链',
-              children: [
-                {
-                  id: 121,
-                  name: '子项链1'
-                },
-                {
-                  id: 122,
-                  name: '子项链2'
-                }
-              ]
-            }
-          ]
-        }
-      ],
+      tableDialog: false,
+      treeDatas: [],
       defaultProps: {
-        label: 'name'
+        label: 'label'
       },
-      tableDatas: [
-        {
-          id: 1,
-          chineseName: '产品材质',
-          englishName: 'cpcz',
-          dataType: '下拉',
-          dictionaryData: '硬金、K金、幻彩金',
-          isRequire: true,
-          propertyType: '产品属性'
-        },
-        {
-          id: 2,
-          chineseName: '制造工艺',
-          englishName: 'zzgy',
-          dataType: '字符串',
-          dictionaryData: '暂无信息',
-          isRequire: false,
-          propertyType: '产品属性'
-        }
-      ]
+      tableDatas: [],
+      tempId: null,
+      selTreeObj: null,
+      addKindName: null,
+      selTreeId: null
     }
   },
   methods: {
-    append(data) {},
-    remove(node, data) {},
+    clickKind(data) {
+      this.selTreeObj = data
+      this.Axios
+        .get(`/product/productClass/${this.selTreeObj.id}`)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.tableDatas = result.data.attrList
+            this.$nextTick(() => {
+              this.tableDatas.forEach(item => {
+                if (item.status == 1) {
+                  this.$refs.tableElement.toggleRowSelection(item)
+                }
+              })
+            })
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.clickKind)
+        })
+    },
+    append(e, node, data) {
+      this.tableDialog = true
+      this.selTreeId = data.id
+      e.cancelBubble = true
+    },
+    addKindConfirm(){
+      if(this.addKindName){
+        let params ={
+          className: this.addKindName,
+          parentId: this.selTreeId
+        }
+        this.Axios.post('/product/productClass',params).then(res=>{
+          let result = res.data
+          if(result.code == 0){
+            this.$message.success('添加成功')
+            this.getKindList()
+            this.tableDialog = false
+          }else{
+            this.$message.error(result.msg)
+          }
+        }).catch(err=>{
+          this.extCatch(err,this.addKindConfirm)
+        })
+      }else{
+        this.$message.warning('请输入产品类目名称')
+      }
+    },
+    remove(e, node, data) {
+      this.$confirm('确定删除？', '提示', {
+        type: 'warning'
+      })
+        .then(() => {
+          this.Axios
+            .delete(`/product/productClass/${data.id}`)
+            .then(res => {
+              let result = res.data
+              if (result.code == 0) {
+                this.$message.success('删除成功')
+                const parent = node.parent
+                const children = parent.data.children || parent.data
+                const index = children.findIndex(d => d.id === data.id)
+                children.splice(index, 1)
+              } else {
+                this.$message.error(result.msg)
+              }
+            })
+            .catch(err => {
+              this.extCatch(err, this.remove)
+            })
+        })
+        .catch(() => {})
+      e.cancelBubble = true
+    },
+    kindMouseover(data) {
+      this.tempId = data.id
+    },
+    kindMouseout() {
+      this.tempId = null
+    },
     renderContent(h, { node, data, store }) {
       return (
-        <span style="flex: 1; display: flex; align-items: center; justify-content: space-between; font-size: 14px; padding-right: 8px;">
+        <span
+          on-mouseover={() => this.kindMouseover(data)}
+          on-mouseout={() => this.kindMouseout()}
+          style="flex: 1; display: flex; align-items: center; justify-content: space-between; font-size: 14px; padding-right: 8px;"
+        >
           <span>
             <span>{node.label}</span>
           </span>
-          <span>
+          <span v-show={this.tempId == data.id}>
             <el-button
               style="font-size: 12px;"
               type="text"
-              on-click={() => this.append(data)}
+              on-click={e => this.append(e, node, data)}
             >
               <i class="el-icon-plus" />
             </el-button>
             <el-button
               style="font-size: 12px;"
               type="text"
-              on-click={() => this.remove(node, data)}
+              v-show={data.parentId != 0}
+              on-click={e => this.remove(e, node, data)}
             >
               <i class="el-icon-delete" />
             </el-button>
           </span>
         </span>
       )
+    },
+    getKindList() {
+      this.Axios
+        .get('/product/productClass/tree')
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.treeDatas = result.data
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getKindList)
+        })
+    },
+    handleSelectionChange(selection, row) {
+      let requestRoute = null
+      row.status == 0
+        ? (requestRoute = '/product/productClass/enabledAttr')
+        : (requestRoute = '/product/productClass/forbiddenAttr')
+      let params = {
+        attrIds: [row.id]
+      }
+      this.updateAttrs(requestRoute, params)
+    },
+    handleSelectionAllChange(selection) {
+      let requestRoute = null
+      let params = { attrIds: [] }
+      selection.length == 0
+        ? (requestRoute = '/product/productClass/forbiddenAttr')
+        : (requestRoute = '/product/productClass/enabledAttr')
+      this.tableDatas.forEach(item => {
+        params.attrIds.push(item.id)
+      })
+      this.updateAttrs(requestRoute, params)
+    },
+    updateAttrs(requestRoute, params) {
+      this.Axios
+        .post(requestRoute, params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.$message.success('修改成功')
+            this.clickKind(this.selTreeObj)
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.handleSelectionChange)
+        })
+    },
+    isRequireChange(id, isRequire) {
+      let params = {
+        isRequired: isRequire
+      }
+      this.Axios
+        .put(`/product/productClass/attr/${id}`, params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.$message.success('修改成功')
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.isRequireChange)
+        })
+    }
+  },
+  created() {
+    this.getKindList()
+  },
+  watch:{
+    tableDialog(val){
+      if(!val){
+        this.addKindName = null
+      }
     }
   }
 }
@@ -204,4 +355,10 @@ $base-color = rgb(230, 14, 50)
     .rightWrapper
       flex 1
       overflow hidden
+  .dialogWrapper
+    .addKindWrapper
+      display flex
+      align-items center
+      .title 
+        white-space nowrap
 </style>

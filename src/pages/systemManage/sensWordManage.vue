@@ -7,6 +7,29 @@
         </el-breadcrumb>
         <div>
         <div class="hr"/>
+        <div>
+          <el-input
+            placeholder="请输入敏感词搜索"
+            prefix-icon="el-icon-search"
+            v-model="wordSearch">
+          </el-input>
+        </div>
+        <div class="wordDiv">
+          <el-row>
+            <el-col :span="16">
+              <el-input
+                type="textarea"
+                :autosize="{ minRows:10,}"
+                placeholder="请输入内容"
+                v-model="wordDisplay">
+              </el-input>
+            </el-col>
+            <el-col :span="8">
+              <div class="wordTitB">提示</div>
+              <div class="wordTit">设置敏感词时请使用,逗号、空格、顿号作为分隔符。</div>
+            </el-col>
+          </el-row>
+        </div>
 	    </div>
     </div>
 </template>
@@ -14,16 +37,17 @@
 export default {
   data() {
     return {
-   }
+      wordSearch: "",
+      wordDisplay: ""
+    };
   },
   created() {
     this.created_fun();
   },
   methods: {
-    created_fun() {
-    },
+    created_fun() {}
   }
-}
+};
 </script>
 
 <style scoped lang="stylus" rel="stylesheet/stylus">
@@ -32,8 +56,8 @@ $font-color = #999
 .conBigDiv
   .title
     border-bottom 1px solid #d9d9d9
-    padding-bottom 10px;
-    margin-bottom 10px;
+    padding-bottom 10px
+    margin-bottom 10px
   .hr
     border-top 1px solid #d9d9d9
     height 3px
@@ -45,4 +69,16 @@ $font-color = #999
     font-size 15px
   .red_font
     color $base-color
+  .wordDiv
+    margin-top 15px
+    .wordTitB
+      color $font-color
+      font-size 18px
+      padding-left 20px
+      
+    .wordTit
+      color $font-color
+      font-size 14px
+      padding-left 20px
+      margin-top 15px
 </style>

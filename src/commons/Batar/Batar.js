@@ -1,15 +1,8 @@
-/**
- * ============================ @前端开发小组-Batar =============================
- */
 import Base64 from '@/commons/libs/Base64';
 import MD5 from "@/commons/libs/MD5";
 import router from '@/router/index';
 import utils from '@/commons/Batar/utils';
-
 export default {
-  /**
-   * 【更新accessToken】
-   */
   refToken($this, func, refTokenRouter) {
     let refreshToken = utils.getCookie('refreshToken');
     if (refreshToken) {
@@ -29,26 +22,20 @@ export default {
       router.push('/login');
     }
   },
-  /**
-   * 【参数格式化】
-   */
   formartParams(config, baseURL, appConfig) {
     let accessToken = utils.getCookie('accessToken');
-
     let method = config.method.toUpperCase();
     let url = config.url;
     let signKey = method + url.replace(baseURL, "/");
-
-    if (method == 'GET' || method == 'DELETE') { // GET、DELETE
+    if (method == 'GET' || method == 'DELETE') {
       let PRS = config.PRS ? config.PRS : {};
       PRS.accessToken = accessToken;
       PRS.signKey = this.getSignKey(signKey, PRS, appConfig);
       config.PRS = PRS;
-
       let params = utils.fomartParams(config.PRS);
       url = config.url + '?' + params;
       config.url = url;
-    } else if (method == 'PUT' || method == 'POST') { // PUT、POST
+    } else if (method == 'PUT' || method == 'POST') {
       config.data = config.data ? config.data : {};
       signKey += '&' + JSON.stringify(config.data) + '&' + appConfig.sign;
       let isFormdata = 'append' in config.data
@@ -61,9 +48,6 @@ export default {
       }
     }
   },
-  /**
-   * 获取签名
-   */
   getSignKey(signKey, PRS, appConfig) {
     let keys = Object.keys(PRS).sort();
     for (var i = 0; i < keys.length; i++) {
