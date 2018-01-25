@@ -9,9 +9,9 @@
         <div class="redfont">
           启动推广设置
         </div>
-        <div class="contant">
+        <div class="contant" v-loading.fullscreen.lock="loading">
           <el-row>
-            <el-col :span="8">
+            <el-col :span="6" class="leftcol">
               <div class="startimg" @click="uploadImg" v-if="startAllData.imageType == '0'"> 
                 <img src="\static\imgs\startPromoImg.png" v-if="startAllData.imageUrl == ''" class="startImgClass"/>            
                 <img :src="fileAddress+'/'+startAllData.imageUrl" v-else class="startImgClass"/>            
@@ -29,7 +29,7 @@
                 <span v-show="startAllData.imageType == '1'">点击图片上传推广动画</span>
               </div>
             </el-col>
-            <el-col :span="14">
+            <el-col :span="15">
               <div class="rightdiv">
                 <div class="rightSubdiv">
                   <el-checkbox v-model="startAllData.isOpen" @change="startDataChange">开启推广</el-checkbox>
@@ -45,7 +45,7 @@
                     </el-option>
                   </el-select>
                 </div>
-                <div class="rightSubdiv">
+                <div class="rightSubdiv" v-if="startAllData.imageType == 0" >
                   倒计时时间<br/>
                   <el-select v-model="startAllData.countDown" placeholder="请选择" size="small" @change="startDataChange">
                     <el-option
@@ -77,7 +77,6 @@
                   <div class="hr"/>
                   <span v-show="startAllData.dataType == 2">
                       <el-button type="primary" plain size="small" class="carou_sub_selectbtn" @click="selectcarou_btn">选择类别</el-button>
-                      {{startAllData.promoName}}
                       <div class="carou_subbottom_txt" v-if="startAllData.promoName != ''||startAllData.promoName != null">
                           <span class="carou_subbottom_span">已选择类别 : </span>{{startAllData.promoName}}
                       </div>
@@ -104,20 +103,20 @@
               title="选择推广类别"
               :visible.sync="selectpromo_dialog"
               width="950px">
-                <div class="content">
-                        <div class="item" v-for="cate in promoSourseData" :key="cate.id">
-                          <div class="parent">
-                            <el-radio v-model="startAllData.dataId" :label="cate.id">{{cate.categoryName}}</el-radio>
-                          </div>
-                          <div class="child" v-show="cate.categoryList.length != 0">
-                            【 <el-radio v-model="startAllData.dataId" class="childText" :label="catesub.id" v-for="catesub in cate.categoryList" :key="catesub.id">{{ catesub.categoryName }}</el-radio> 】
-                          </div>
-                      </div>
-                </div>
-                  <span slot="footer" class="dialog-footer">
-                      <el-button @click="selectpromo_dialog = false" size="small">取 消</el-button>
-                      <el-button type="primary" @click="selectedPromo" size="small">确 定</el-button>
-                  </span>
+                <el-checkbox-group v-model="checkList">
+                  <div class="item" v-for="item in promoAllData" :key="item.id">
+                    <div class="parent">
+                      <el-checkbox :label="item.id" @change="changeItem(item)">{{item.categoryName}}</el-checkbox>
+                    </div> 
+                    <div class="child" v-show="item.categoryList.length > 0">
+                        【 <el-checkbox class="childText" :label="child.id" v-for="child in item.categoryList" :key="child.id" @change="changeChild(child,item)">{{ child.categoryName }}</el-checkbox> 】
+                    </div> 
+                  </div>
+                </el-checkbox-group>
+                <span slot="footer" class="dialog-footer">
+                    <el-button @click="selectpromo_dialog = false" size="small">取 消</el-button>
+                    <el-button type="primary" @click="selectedPromo" size="small">确 定</el-button>
+                </span>
               </el-dialog>
 
               <!-- 选择单品弹出框 -->
@@ -126,10 +125,18 @@
               :visible.sync="selectone_dialog"
               width="950px">
                   <div>
+                    <el-select v-model="value" placeholder="全部类别" size="small">
+                      <el-option
+                        v-for="item in options"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value">
+                      </el-option>
+                    </el-select>
                       <el-input
                           placeholder="请输入内容"
-                          v-model="selecone_search" size="small">
-                          <i slot="prefix" class="el-input__icon el-icon-search"></i>
+                          v-model="selecone_search" size="small" class="proSearch">
+                          <el-button slot="append" icon="el-icon-search" ></el-button>
                       </el-input>
                       <el-row :gutter="20" class="proImgDiv">
                           <el-col :span="8" v-for="item in productData" :key="item.id">
@@ -213,10 +220,34 @@ export default {
           label: "不显示"
         }
       ],
+      //产品分类
+      options: [
+        {
+          value: "选项1",
+          label: "黄金糕"
+        },
+        {
+          value: "选项2",
+          label: "双皮奶"
+        },
+        {
+          value: "选项3",
+          label: "蚵仔煎"
+        },
+        {
+          value: "选项4",
+          label: "龙须面"
+        },
+        {
+          value: "选项5",
+          label: "北京烤鸭"
+        }
+      ],
+      value: "",
       startAllData: [],
       selectpromo_dialog: false, //选择类别弹出框
       selectone_dialog: false, //选择单品弹出框
-      promoSourseData: [], // 全部推广类别
+      promoAllData: [], // 全部推广类别
       catecheckedId: "", //选中推广类别的id
       catecheckedName: "", //选中推广类别的名称
       productData: [], //产品接口所有数据
@@ -226,7 +257,8 @@ export default {
       selecone_search: "", //选择单品搜索
       EventListenerTf: true, //产品分页已加监听，true为未加载监听，false为已加载监听
       loading: true, //页面加载中
-      modalShow: true //数据打散重新渲染
+      modalShow: true, //数据打散重新渲染
+      checkList: [] //新增推广类别确认数组
     };
   },
   mounted() {
@@ -247,6 +279,7 @@ export default {
               self.startAllData.dataId = parseInt(self.startAllData.dataId);
               self.promoData();
             }
+            self.loading = false;
           }
         })
         .catch(err => {
@@ -282,7 +315,7 @@ export default {
       this.Axios.get("/promotion/category")
         .then(data => {
           if (data.data.code == 0) {
-            self.promoSourseData = data.data.data;
+            self.promoAllData = data.data.data;
             self.proDisplayName();
           }
         })
@@ -325,19 +358,14 @@ export default {
         //推广类别名称保存
         var promoId = parseInt(self.startAllData.dataId);
         var promoName = "";
-        for (var i = 0; i < self.promoSourseData.length; i++) {
-          if (promoId == self.promoSourseData[i].id) {
-            promoName = self.promoSourseData[i].categoryName;
+        for (var i = 0; i < self.promoAllData.length; i++) {
+          if (promoId == self.promoAllData[i].id) {
+            promoName = self.promoAllData[i].categoryName;
           }
-          if (self.promoSourseData[i].categoryList.length != 0) {
-            for (
-              var j = 0;
-              j < self.promoSourseData[i].categoryList.length;
-              j++
-            ) {
-              if (promoId == self.promoSourseData[i].categoryList[j].id) {
-                promoName =
-                  self.promoSourseData[i].categoryList[j].categoryName;
+          if (self.promoAllData[i].categoryList.length != 0) {
+            for (var j = 0; j < self.promoAllData[i].categoryList.length; j++) {
+              if (promoId == self.promoAllData[i].categoryList[j].id) {
+                promoName = self.promoAllData[i].categoryList[j].categoryName;
               }
             }
           }
@@ -363,7 +391,18 @@ export default {
       this.Axios.get("/promotion/category")
         .then(data => {
           if (data.data.code == 0) {
-            self.promoSourseData = data.data.data;
+            self.promoAllData = data.data.data;
+            self.checkList = [self.startAllData.dataId]
+            for (var i in self.promoAllData) {
+              if (self.promoAllData[i].id == self.startAllData.dataId) {
+                self.promoAllData[i].layer = 1; //如果是1级大类
+                for (var j in self.promoAllData[i].categoryList) {
+                  self.checkList.push(self.promoAllData[i].categoryList[j].id);
+                }
+              } else {
+                self.promoAllData[i].layer = 2; //默认是2级小类
+              }
+            }
           }
         })
         .catch(err => {
@@ -374,6 +413,21 @@ export default {
     //选择类别确认按钮
     selectedPromo() {
       var self = this;
+      for (var i in self.promoAllData) {
+        if (self.promoAllData[i].layer == 1) {
+          for (var j in self.promoAllData[i].categoryList) {
+            self.removeByValue(
+              self.checkList,
+              self.promoAllData[i].categoryList[j].id
+            );
+          }
+        }
+      }
+      // console.log(self.checkList)
+      self.startAllData.dataId = self.checkList[0];
+
+      // self.startAllData.
+
       this.Axios.post("/promotion/generalizeAppstart", self.startAllData)
         .then(data => {
           if (data.data.code == 0) {
@@ -471,6 +525,7 @@ export default {
     //图片文件上传
     imgUpload(e) {
       var self = this;
+      self.loading = true;
       let formData = new FormData();
       formData.append("file", e.target.files[0]);
       formData.append("type", 0);
@@ -483,6 +538,7 @@ export default {
                 if (data.data.code == 0) {
                   // console.log(data.data.data);
                   self.startAllData = data.data.data;
+                  self.loading = false;
                   this.$message({
                     message: data.data.msg,
                     type: "success"
@@ -504,6 +560,7 @@ export default {
     //视频文件上传
     moiveUpload(e) {
       var self = this;
+      self.loading = true;
       let formData = new FormData();
       formData.append("file", e.target.files[0]);
       formData.append("id", self.startAllData.id);
@@ -548,6 +605,98 @@ export default {
         .catch(err => {
           this.extCatch(err, this.changePro);
         });
+    },
+    //新增推广展示改变父类的多选框选择1级大类
+    changeItem(elem) {
+      var self = this;
+      for (var p in elem.categoryList) {
+        elem.categoryList[p].layer = 1;
+      }
+      elem.layer = 1;
+
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        self.checkList = [];
+        self.checkList.push(elem.id);
+        for (var i in elem.categoryList) {
+          self.checkList.push(elem.categoryList[i].id);
+        }
+      } else {
+        //选中数组已经没有了数组
+        for (var i in elem.categoryList) {
+          for (var j in self.checkList) {
+            if (self.checkList[j] == elem.categoryList[i].id) {
+              self.removeByValue(self.checkList, self.checkList[j]);
+            }
+          }
+        }
+      }
+      self.checkList = self.removeListRepeat(self.checkList); //数组去重
+    },
+    //推广类别选择2级小类
+    changeChild(elem, item) {
+      var self = this;
+      // console.log(elem)
+      // console.log(item)
+      self.checkList = [];
+      if ((elem.layer = 1)) {
+        for (var p in item.categoryList) {
+          item.categoryList[p].layer = 2;
+          self.removeByValue(self.checkList, item.categoryList[p].id);
+        }
+        self.checkList.push(elem.id);
+      }
+      item.layer = 2;
+
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        for (var i in self.promoAllData) {
+          if (self.promoAllData[i].categoryList.length != 0) {
+            for (var j in self.promoAllData[i].categoryList) {
+              if (self.promoAllData[i].categoryList[j].id == elem.id) {
+                for (
+                  var k = 0;
+                  k < self.promoAllData[i].categoryList.length;
+                  k++
+                ) {
+                  self.removeByValue(
+                    self.checkList,
+                    self.promoAllData[i].categoryList[k].id
+                  );
+                }
+                self.removeByValue(self.checkList, self.promoAllData[i].id);
+                self.checkList.push(elem.id);
+              }
+            }
+          }
+        }
+      } else {
+        //当多选数组没有此数组编号
+        // console.log(self.checkList);
+      }
+    },
+    //删除子元素
+    removeByValue(arr, val) {
+      for (var i in arr) {
+        if (arr[i] == val) {
+          arr.splice(i, 1);
+          break;
+        }
+      }
+    },
+    //新增推广展示去重
+    removeListRepeat(arr) {
+      var res = [];
+      var json = {};
+      for (var i in arr) {
+        if (!json[arr[i]]) {
+          res.push(arr[i]);
+          json[arr[i]] = 1;
+        }
+      }
+      return res;
     }
   }
 };
@@ -578,6 +727,8 @@ $font-color = #999
     margin-top 10px
     padding 60px
     border-radius 5px
+    .leftcol
+      min-width 370px
     .startimg
       cursor pointer
       width 360px
@@ -597,6 +748,7 @@ $font-color = #999
       .rightSubdiv
         line-height 30px
         margin-bottom 30px
+        font-size 14px
       .carou_sub_selectbtn
         float right
     .selectone_img_div
@@ -634,7 +786,7 @@ $font-color = #999
       background-color #999
       opacity 0.8
       color #ffffff
-      font-size 12px
+      font-size 14px
       padding 0 5px
       border-bottom-right-radius 5px
   .item
@@ -642,6 +794,8 @@ $font-color = #999
     margin-bottom 30px
     display flex
     align-items top
+    color #000
+    font-size 14px
     .child .el-radio
       color #999
     .text
@@ -657,4 +811,7 @@ $font-color = #999
     width 360px
     height 640px
     object-fit fill
+  .proSearch
+    margin-bottom 5px
+    width 315px
 </style>

@@ -115,7 +115,7 @@
         <el-table-column
           align="center"
           label="产品品类"
-          prop="productClassName">
+          prop="productClass.className">
         </el-table-column>
         <el-table-column
           align="center"
@@ -269,7 +269,7 @@
                   @mouseover="selImg = element"
                   @mouseout="selImg = null">
                   <img :src="fileAddress + element.imageUrl">
-                  <i class="el-icon-circle-close-outline delIcon bt-hover" v-show="selImg == element" @click="delPreImg(element.imageUrl)"></i>
+                  <i class="el-icon-error delIcon bt-hover" v-show="selImg == element" @click="delPreImg(element.imageUrl)"></i>
                 </div>
               <!-- </transition-group>
             </draggable> -->

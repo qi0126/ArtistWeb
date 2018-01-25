@@ -14,7 +14,7 @@
                     </div>
                     <div class="leftMenu">
                         <div class="leftBtn">
-                            <el-button type="primary" plain class="baibtn" @click="addpromo" size="small">新增推广展示</el-button>
+                            <el-button plain class="baibtn" @click="addpromo" size="small"><i class="iconfont">&#xe67f;</i>  新增推广展示</el-button>
                         </div>
                         <el-menu
                         class="el-menu-vertical-demo" size="small">
@@ -80,6 +80,19 @@
                                 title="更换产品"
                                 :visible.sync="proChangeVisible"
                                 width="950px">
+                                  <div>
+                                    <el-select v-model="value" placeholder="全部类别" size="small">
+                                      <el-option
+                                        v-for="item in options"
+                                        :key="item.value"
+                                        :label="item.label"
+                                        :value="item.value">
+                                      </el-option>
+                                    </el-select>
+                                    <el-input placeholder="请输入产品名字、编码、产品类别名称" v-model="proSearch" class="proSearch" size="small">
+                                      <el-button slot="append" icon="el-icon-search"></el-button>
+                                    </el-input>
+                                  </div>
                                     <div ref="proDiv" class="proDiv">
                                         <el-row>
                                             <el-col :span="8" v-for="item in productData" :key="item.id">
@@ -89,7 +102,6 @@
                                                       <img :src="[item.headImage != null?fileAddress+item.headImage:'/static/imgs/syBg.png']" />
                                                       <div class="proImgNum">共{{item.imageCount}}张</div>
                                                     </div>
-                                                    
                                                     <div class="pro_img_txt">
                                                         {{item.productName}}<br/>
                                                         {{item.productNumber}}
@@ -110,19 +122,20 @@
 
                 </el-main>
                 <el-dialog
-                title="添加推广类别"
+                title="新增推广展示"
                 :visible.sync="addpromo_dialog"
                 width="950px">
-                    <el-radio-group v-model="promoSelectId">
-                        <div class="item" v-for="kind in promoAllData" :key="kind.id">
-                            <div class="parent">
-                                <el-radio :label="kind.id">{{kind.categoryName}}</el-radio>
-                            </div>
-                            <div class="child" v-show="kind.categoryList.length > 0">
-                                【 <el-radio class="childText" :label="child.id" v-for="child in kind.categoryList" :key="child.id">{{ child.categoryName }}</el-radio> 】
-                            </div>
-                        </div>
-                    </el-radio-group>
+                    <el-checkbox-group v-model="checkList">
+                      <div class="item" v-for="item in promoAllData" :key="item.id">
+                        <div class="parent">
+                          <el-checkbox :label="item.id" @change="changeItem(item)">{{item.categoryName}}</el-checkbox>
+                        </div> 
+                        <div class="child" v-show="item.categoryList.length > 0">
+                            【 <el-checkbox class="childText" :label="child.id" v-for="child in item.categoryList" :key="child.id" @change="changeChild(child,item)">{{ child.categoryName }}</el-checkbox> 】
+                        </div> 
+                      </div>
+                    </el-checkbox-group>
+                    <br/><br/>
                     <span slot="footer" class="dialog-footer">
                         <el-button @click="addpromo_dialog = false" size="small">取 消</el-button>
                         <el-button type="primary" @click="addPromoListFun" size="small">确 定</el-button>
@@ -141,11 +154,14 @@
 export default {
   data() {
     return {
+      checkList: [], //新增推广类别确认数组
+      checkListDisp: [], //显示"禁用"数组
       menu_data: [], //推广类主菜单
       overId: "",
       addpromo_dialog: false, //新增推广类别弹出框
       promoAllData: [], // 全部推广类别
       promoSelectId: [], //选择推广类别ID
+      promoId: "",
       promoSelectedData: [], //选择推广类别的数据
       dispmode_data: [
         {
@@ -187,6 +203,7 @@ export default {
       productAllData: [], //产品显示所有数据
       productNum: 1, //产品显示分页第几页，默认为1
       productSize: 15, //产品显示一页显示几条，默认为15
+      proSearch: "", //更换产品搜索数据
       selectedProId: 0, //产品选中的产品id
       selectedImgId: 0, //产品选中产品图片id
       selectedProImgId: 0, //产品选中图片的id
@@ -199,14 +216,26 @@ export default {
   },
   methods: {
     created_fun() {
-      this.Axios
-        .get("/promotion/promotionShow")
+      var self = this;
+      self.checkListDisp = [];
+      self.checkList = [];
+      this.Axios.get("/promotion/promotionShow")
         .then(data => {
           if (data.data.code == 0) {
             this.menu_data = data.data.data;
-            console.log(data.data.data);
+            // console.log(self.menu_data);
+            //已加推广展示在新增推广展示默认打勾勾
+
+            // for (var i in self.menu_data) {
+            // self.checkListDisp.push(self.menu_data[i].categoryId);
+            // self.checkList.push(self.menu_data[i].categoryId);
+            // }
+            // console.log(self.checkList)
+
             //如果有数据则显示第一个推广显示第一条数据
-            this.menuClick(data.data.data[0]);
+            if (data.data.data.length != 0) {
+              this.menuClick(data.data.data[0]);
+            }
           }
         })
         .catch(err => {
@@ -227,8 +256,7 @@ export default {
         id: self.promoSelectId,
         type: self.dispmode_value
       };
-      this.Axios
-        .put("/promotion/promotionShow/type", params)
+      this.Axios.put("/promotion/promotionShow/type", params)
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data);
@@ -251,25 +279,21 @@ export default {
     //展示选择展示内容
     menuClick(elem) {
       var self = this;
-      // self.loading = true;
       self.selectedMenuElem = elem;
       self.dispmode_value = elem.type;
-      console.log(elem);
+      self.promoId = elem.id;
       self.dispmode_num = elem.showNum;
       self.dispmode_imgUrl = elem.coverImageUrl;
       //推广方式为封面显示则显示封面
       if (elem.type == 1) {
         self.loading = false;
-        // return false
       }
-      //推广方式为产品显示则显示产品
       let params = {
         PRS: {
           id: elem.id
         }
       };
-      this.Axios
-        .get("/promotion/promotionShow/" + elem.id, params)
+      this.Axios.get("/promotion/promotionShow/" + elem.id, params)
         .then(data => {
           if (data.data.code == 0) {
             self.promoSelectId = elem.id;
@@ -287,7 +311,6 @@ export default {
                   data.data.data.showProductNumList[i].productId;
                 templist.push(proImgTemp);
               }
-              // console.log(templist)
               self.proIdList_fun(templist);
             } else {
               self.promoSelectedData = [];
@@ -305,29 +328,28 @@ export default {
     },
     //产品id数组查询产品资料数组
     proIdList_fun(elem) {
-      // console.log(elem)
       var self = this;
       var tempElem = [];
-      // console.log(elem)
       var tempObj = {};
-      for (var i = 0; i < elem.length; i++) {
-        // console.log(elem[i])
+
+      for (var i in elem) {
         tempElem.push(elem[i].productId);
         tempObj[elem[i].productId] = elem[i].proId;
+      }
+      if (tempElem.length == 0) {
+        return false;
       }
       let params = {
         PRS: {
           ids: tempElem
         }
       };
-      this.Axios
-        .get("/product/product/batch/base", params)
+      this.Axios.get("/product/product/batch/base", params)
         .then(data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data);
             self.loading = false;
             self.promoSelectedData = data.data.data;
-            for (var j = 0; j < self.promoSelectedData.length; j++) {
+            for (var j in self.promoSelectedData) {
               self.promoSelectedData[j].proImgId =
                 tempObj[self.promoSelectedData[j].id];
             }
@@ -352,8 +374,7 @@ export default {
             id: elem.id
           }
         };
-        this.Axios
-          .delete("/promotion/promotionShow/" + elem.id, params)
+        this.Axios.delete("/promotion/promotionShow/" + elem.id, params)
           .then(data => {
             if (data.data.code == 0) {
               this.$message({
@@ -376,12 +397,37 @@ export default {
     //添加新的推广展示弹出框
     addpromo() {
       var self = this;
-      this.Axios
-        .get("/promotion/category")
+
+      this.Axios.get("/promotion/category")
         .then(data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data);
             self.promoAllData = data.data.data;
+            //推广类别数组添加一个字段是否一级选择
+            for (var i in self.promoAllData) {
+              self.promoAllData[i].layer = 2; //默认是2级小类
+              // console.log(self.promoAllData[i]);
+              
+              // for (var k in self.checkListDisp) {
+              //   // console.log(self.checkList[k]);
+              //   if (self.checkListDisp[k] == self.promoAllData[i].id) {
+              //     self.promoAllData[i].disabledT = true;
+              //   }
+              // }
+              // if (self.promoAllData[i].categoryList.length != 0) {
+              //   for (var u in self.promoAllData[i].categoryList) {
+              //     for (var k in self.checkListDisp) {
+              //       if (
+              //         self.checkListDisp[k] ==
+              //         self.promoAllData[i].categoryList[u].id
+              //       ) {
+              //         self.promoAllData[i].categoryList[u].disabledT = true;
+              //       }
+              //     }
+              //   }
+              // }
+            }
+            // console.log(self.checkList);
+            // console.log(self.promoAllData);
           }
         })
         .catch(err => {
@@ -392,12 +438,22 @@ export default {
     //添加新推广确认事件
     addPromoListFun() {
       var self = this;
+      // console.log(self.promoAllData);
+      //选择一级的情况下，过滤掉二级分类的id
+      for(var i in self.promoAllData){
+        if(self.promoAllData[i].layer == 1){
+          for(var j in self.promoAllData[i].categoryList){
+            self.removeByValue(self.checkList,self.promoAllData[i].categoryList[j].id)
+          }
+        }
+      }
+      // console.log(self.checkList)
+
       let params = {
-        categoryId: self.promoSelectId
+        categoryIds: self.checkList
       };
 
-      this.Axios
-        .post("/promotion/promotionShow", params)
+      this.Axios.post("/promotion/promotionShow", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -416,7 +472,96 @@ export default {
         .catch(err => {
           this.extCatch(err, this.addPromoListFun);
         });
+      self.checkList = [];
       self.promoSelectId = "";
+    },
+    
+    //新增推广展示改变父类的多选框选择1级大类
+    changeItem(elem) {
+      var self = this;
+      for (var p in elem.categoryList) {
+        elem.categoryList[p].layer = 1;
+      }
+      elem.layer = 1;
+      // console.log(elem)
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        for (var i in elem.categoryList) {
+          self.checkList.push(elem.categoryList[i].id);
+        }
+      } else {
+        //选中数组已经没有了数组
+        for (var i in elem.categoryList) {
+          for (var j in self.checkList) {
+            if (self.checkList[j] == elem.categoryList[i].id) {
+              self.removeByValue(self.checkList, self.checkList[j]);
+            }
+          }
+        }
+      }
+      self.checkList = self.removeListRepeat(self.checkList); //数组去重
+    },
+    //推广类别选择2级小类
+    changeChild(elem, item) {
+      var self = this;
+      if (elem.layer = 1) {
+        for (var p in item.categoryList) {
+          item.categoryList[p].layer = 2;
+          self.removeByValue(self.checkList,item.categoryList[p].id)
+        }
+        self.checkList.push(elem.id)
+      }
+      item.layer = 2;
+
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        for (var i in self.promoAllData) {
+          if (self.promoAllData[i].categoryList.length != 0) {
+            for (var j in self.promoAllData[i].categoryList) {
+              if (self.promoAllData[i].categoryList[j].id == elem.id) {
+                for (
+                  var k = 0;
+                  k < self.promoAllData[i].categoryList.length;
+                  k++
+                ) {
+                  self.removeByValue(
+                    self.checkList,
+                    self.promoAllData[i].categoryList[k].id
+                  );
+                }
+                self.removeByValue(self.checkList, self.promoAllData[i].id);
+                self.checkList.push(elem.id);
+              }
+            }
+          }
+        }
+      } else {
+        //当多选数组没有此数组编号
+        // console.log(self.checkList);
+      }
+    },
+    //删除子元素
+    removeByValue(arr, val) {
+      for (var i in arr) {
+        if (arr[i] == val) {
+          arr.splice(i, 1);
+          break;
+        }
+      }
+    },
+    //新增推广展示去重
+    removeListRepeat(arr) {
+      var res = [];
+      var json = {};
+      for (var i in arr) {
+        if (!json[arr[i]]) {
+          res.push(arr[i]);
+          json[arr[i]] = 1;
+        }
+      }
+      return res;
     },
     //封面展示点击图片文件上传
     title_upload() {
@@ -430,18 +575,15 @@ export default {
       let formData = new FormData();
       formData.append("file", e.target.files[0]);
       formData.append("type", 0);
-      this.Axios
-        .post(`${this.fileAddress}/image/upload`, formData)
-        .then(data => {
+      this.Axios.post(`${this.fileAddress}/image/upload`, formData).then(
+        data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data[0].url);
             let params_two = {
               id: self.promoSelectId,
               coverImageUrl: data.data.data[0].url
             };
 
-            this.Axios
-              .put("/promotion/promotionShow/image", params_two)
+            this.Axios.put("/promotion/promotionShow/image", params_two)
               .then(data => {
                 if (data.data.code == 0) {
                   // console.log(data.data.data);
@@ -468,26 +610,21 @@ export default {
               type: "warning"
             });
           }
-        });
-
-      // console.log(self.$refs.title_upload.value);
+        }
+      );
     },
     //修改产品推广数量
     num_select() {
       var self = this;
-      // console.log(self.selectedMenuElem);
-      // console.log(self.dispmode_num);
       var proNum = parseInt(self.dispmode_num);
       let params = {
         id: self.selectedMenuElem.id,
         showNum: proNum
       };
 
-      this.Axios
-        .put("/promotion/promotionShow/num", params)
+      this.Axios.put("/promotion/promotionShow/num", params)
         .then(data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data);
             this.$message({
               message: data.data.msg,
               type: "success"
@@ -508,27 +645,12 @@ export default {
     //推广展示更换产品弹出框
     proChange(elem) {
       var self = this;
-      self.proDisplay(self.productNum, self.productSize);
-      console.log(elem);
       self.selectedProId = elem.id;
       self.selectedImgId = elem.proImgId;
-      console.log(self.selectedImgId);
       self.selectedProImgId = elem.proImgId;
+
+      self.proDisplay();
       self.proChangeVisible = true;
-      setTimeout(function() {
-        var imgDiv = self.$refs.proDiv;
-        imgDiv.addEventListener("scroll", function() {
-          if (this.scrollHeight - this.scrollTop === this.clientHeight) {
-            if (
-              self.productNum * self.productSize <
-              self.productAllData.total
-            ) {
-              self.productNum++;
-              self.proDisplay(self.productNum, self.productSize);
-            }
-          }
-        });
-      }, 50);
     },
     //推广展示更换产品事件
     proChange_fun() {
@@ -538,8 +660,7 @@ export default {
         productId: self.selectedImgId
       };
 
-      this.Axios
-        .put("/promotion/promotionShow/product", params)
+      this.Axios.put("/promotion/promotionShow/product", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -566,17 +687,43 @@ export default {
       var self = this;
       let params = {
         PRS: {
-          page: num,
-          size: size
+          id: self.promoId
         }
       };
-      this.Axios
-        .get("/product/product", params)
+      this.Axios.get("/promotion/promotionShow/product/" + self.promoId, params)
         .then(data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data);
-            self.productData = self.productData.concat(data.data.data.list);
-            self.productAllData = data.data.data;
+            if (data.data.data.length == 0) {
+              alert("此产品没有可更换的产品！");
+            }
+            var tempElem = [];
+            for (var i = 0; i < data.data.data.length; i++) {
+              tempElem.push(data.data.data[i].productId);
+            }
+            if (tempElem.length == 0) {
+              return false;
+            }
+            let params = {
+              PRS: {
+                ids: tempElem
+              }
+            };
+
+            this.Axios.get("/product/product/batch/base", params)
+              .then(data => {
+                if (data.data.code == 0) {
+                  self.productData = data.data.data;
+                  self.loading = false;
+                } else {
+                  this.$message({
+                    message: data.data.msg,
+                    type: "warning"
+                  });
+                }
+              })
+              .catch(err => {
+                this.extCatch(err, this.proIdList_fun);
+              });
           } else {
             this.$message({
               message: data.data.msg,
@@ -591,9 +738,8 @@ export default {
     //产品选择
     proSelect(elem) {
       var self = this;
-      // console.log(elem);
       self.selectedImgId = elem.id;
-      console.log(self.selectedImgId);
+      // console.log(self.selectedImgId);
     }
   }
 };
@@ -671,6 +817,7 @@ $border-color = #d9d9d9
         border 0
         max-width 960px
         width 100%
+        border-radius 5px
       .pro_display
         border 1px solid $border-color
         box-shadow 2px 2px 8px $border-color
@@ -692,10 +839,10 @@ $border-color = #d9d9d9
           float left
           cursor pointer
           position relative
-          border-radius: 5px;
+          border-radius 5px
           img
             height 78px
-            border-radius: 5px;
+            border-radius 5px
         .pro_img_list_Border
           width 98px
           height 78px
@@ -703,10 +850,10 @@ $border-color = #d9d9d9
           cursor pointer
           position relative
           border 1px solid $base-color
-          border-radius: 5px;
+          border-radius 5px
           img
             height 78px
-            border-radius: 5px;
+            border-radius 5px
         .proImgNum
           position absolute
           top 63px
@@ -718,7 +865,6 @@ $border-color = #d9d9d9
           font-size 12px
           padding 0 5px
           border-bottom-right-radius 5px
-          
         .pro_img_txt
           width 190px
           float left
@@ -728,9 +874,14 @@ $border-color = #d9d9d9
     margin-bottom 30px
     display flex
     align-items top
+    color #000
+    font-size 14px
     .child .el-radio
       color #999
     .text
       white-space nowrap
+  .proSearch
+    margin-bottom 5px
+    width 315px
 </style>
       

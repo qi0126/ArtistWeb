@@ -21,29 +21,41 @@
               <el-dialog
                 title="创建新团队"
                 :visible.sync="add_team_dialog"
-                width="30%">
+                width="960px">
                 <div>
-                  <div class="hr"/>
-                  团队名称
-                  <el-input v-model="add_team_name" placeholder="请输入团队名称" size="small"></el-input>
-                  团队区域备注
-                  <el-input v-model="add_team_backup" placeholder="请输入团队区域" size="small"></el-input>
+                  <el-row>
+                    <el-col :span="2" align="center">
+                      团队名称
+                    </el-col>
+                    <el-col :span="7">
+                      <el-input v-model="add_team_name" placeholder="请输入团队名称" size="small"></el-input>
+                    </el-col>
+                    <el-col :span="3">
+                       
+                    </el-col>
+                    <el-col :span="3" align="center">
+                      团队区域备注
+                    </el-col>
+                    <el-col :span="8">
+                      <el-input v-model="add_team_backup" placeholder="请输入团队区域" size="small"></el-input>
+                    </el-col>
+                  </el-row>
                 </div>
-                <div>
-                  选择团队成员
+                <div class="selectManDiv">
+                  <span class="selectManText">选择团队成员</span>
                   <div class="hr"/>
                     <el-input
                       placeholder="请输入关键字搜索"
-                      prefix-icon="el-icon-search"
-                      v-model="addteam_search" size="small">
+                      v-model="addteam_search" size="small" class="proSearch">
+                      <el-button slot="append" icon="el-icon-search"></el-button>
                     </el-input>
                     <el-checkbox-group v-model="checked_addteam">
                       <el-checkbox v-for="addteam in addteam_noman" :label="addteam.id" :key="addteam.id" style="margin-left:0;width:23%;">{{addteam.name}}</el-checkbox>
                     </el-checkbox-group>
                 </div>
                 <span slot="footer" class="dialog-footer">
-                  <el-button @click="add_team_dialog = false">取 消</el-button>
-                  <el-button type="primary" @click="save_addteam">确 定</el-button>
+                  <el-button @click="add_team_dialog = false" size="small">取 消</el-button>
+                  <el-button type="primary" @click="save_addteam" size="small">确 定</el-button>
                 </span>
               </el-dialog>
             </div>
@@ -82,8 +94,8 @@
                     </el-checkbox-group>
                 </div>
                   <span slot="footer" class="dialog-footer">
-                    <el-button @click="add_twoteam_dialog = false">取 消</el-button>
-                    <el-button type="primary" @click="add_twoteam_fun">添加子团队</el-button>
+                    <el-button @click="add_twoteam_dialog = false" size="small">取 消</el-button>
+                    <el-button type="primary" @click="add_twoteam_fun" size="small">添加子团队</el-button>
                   </span>
                 </el-dialog>
                 <el-dialog
@@ -92,8 +104,8 @@
                   width="30%">
                   <span>确认删除此(<span class="red_font" v-html="del_team_name"></span>)团队?</span>
                   <span slot="footer" class="dialog-footer">
-                    <el-button @click="del_team_dialog = false">取 消</el-button>
-                    <el-button type="primary" @click="del_team(del_team_id)">删除团队</el-button>
+                    <el-button @click="del_team_dialog = false" size="small">取 消</el-button>
+                    <el-button type="primary" @click="del_team(del_team_id)" size="small">删除团队</el-button>
                   </span>
                 </el-dialog>
             </div>
@@ -119,8 +131,8 @@
                       v-model="salemans_search" class="salemans_search_input"
                       size="small">
                     </el-input>
-                    <el-button @click="add_man" size="small">添加成员</el-button>
-                    <el-button type="danger" @click="del_man" size="small">删除成员</el-button>
+                    <el-button @click="add_man" size="small"><i class="iconfont">&#xe67f;</i> 添加成员</el-button>
+                    <el-button type="danger" @click="del_man" size="small" :disabled="checked_teamman.length == 0">删除成员</el-button>
                     <el-dialog
                       title="添加团队成员"
                       :visible.sync="add_man_dialog"
@@ -128,9 +140,10 @@
                       <div>
                         <el-input
                           placeholder="请输入内容"
-                          prefix-icon="el-icon-search"
                           v-model="addman_search"
+                          class="proSearch"
                           size="small">
+                          <el-button slot="append" icon="el-icon-search"></el-button>
                         </el-input>
                         <el-checkbox-group v-model="checked_addteam">
                           <el-checkbox v-for="addteam in addteam_noman" :label="addteam.id" :key="addteam.id" style="margin-left:0;width:23%;">{{addteam.name}}</el-checkbox>
@@ -138,8 +151,8 @@
                         
                       </div>
                       <span slot="footer" class="dialog-footer">
-                        <el-button @click="add_man_dialog = false">取 消</el-button>
-                        <el-button type="primary" @click="add_man_fun">确 定</el-button>
+                        <el-button @click="add_man_dialog = false" size="small">取 消</el-button>
+                        <el-button type="primary" @click="add_man_fun" size="small">确 定</el-button>
                       </span>
                     </el-dialog>
                 </div>
@@ -234,7 +247,7 @@ export default {
       addteam_noman: [],
       checked_addteam: [],
       teamManOverId: "",
-      loading:true,//网页加载中
+      loading: true //网页加载中
     };
   },
   created() {
@@ -243,8 +256,7 @@ export default {
   methods: {
     create_fun() {
       var self = this;
-      this.Axios
-        .get("/saler/saleTeam")
+      this.Axios.get("/saler/saleTeam")
         .then(data => {
           if (data.data.code == 0) {
             self.team_alldata = data.data.data;
@@ -270,8 +282,8 @@ export default {
                 return temp_data;
               })(data, null);
             //无限级菜单拼接数据组tree
-            self.team_allsubdata = tree
-            self.loading = false
+            self.team_allsubdata = tree;
+            self.loading = false;
           }
         })
         .catch(err => {
@@ -323,7 +335,7 @@ export default {
               // console.log(temp_saler_list[i]);
             }
             self.teammans = temp_saler_sumlist;
-            console.log(self.teammans);
+            // console.log(self.teammans);
           } else {
             self.teammans = [];
           }
@@ -343,7 +355,7 @@ export default {
     renderContent(h, { node, data, store }) {
       return (
         <div class="left_menu" style="width:100%;">
-          <div style="flex: 1 1 0%; display: flex; align-items: center; justify-content: space-between; font-size: 14px; padding-right: 8px;height:100px;">
+          <div style="flex: 1 1 0%; display: flex; align-items: center; justify-content: space-between; font-size: 14px; padding-right: 8px;">
             <div
               class="red_font"
               style="width:100%;"
@@ -392,13 +404,18 @@ export default {
     //创建新团队保存
     save_addteam() {
       var self = this;
+      var newTeamName = self.add_team_name;
+      newTeamName = newTeamName.replace(/\s+/g, "");
+      if (newTeamName.length == 0) {
+        alert("添加销售团队名称不能为空，请重新输入！");
+        return false;
+      }
       let params = {
         teamName: self.add_team_name,
         comment: self.add_team_backup,
         salers: self.checked_addteam
       };
-      this.Axios
-        .post("/saler/saleTeam", params)
+      this.Axios.post("/saler/saleTeam", params)
         .then(data => {
           if (data.data.code == 0) {
             self.add_team_name = "";
@@ -431,8 +448,7 @@ export default {
         salers: self.checked_addtwoteam,
         parentId: self.select_index
       };
-      this.Axios
-        .post("/saler/saleTeam/", params)
+      this.Axios.post("/saler/saleTeam/", params)
         .then(data => {
           if (data.data.code == 0) {
             self.add_twoteam_name = "";
@@ -508,8 +524,7 @@ export default {
         teamName: self.select_name,
         comment: self.team_backupname
       };
-      this.Axios
-        .put("/saler/saleTeam/" + self.select_index, params)
+      this.Axios.put("/saler/saleTeam/" + self.select_index, params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -546,9 +561,15 @@ export default {
             }
           }
           this.$message({
-            message: "设置'" + elem.name + "'为'" + self.select_name + "'团队负责人成功",
+            message:
+              "设置'" +
+              elem.name +
+              "'为'" +
+              self.select_name +
+              "'团队负责人成功",
             type: "success"
           });
+          // console.log(teammans)
 
           // console.log(JSON.stringify(self.teammans));
         } else {
@@ -609,36 +630,31 @@ export default {
     //删除人员
     del_man() {
       var self = this;
-      if (self.checked_teamman.length == 0) {
-        this.$message({
-          message: "没有选择成员！",
-          type: "warning"
-        });
-        return false;
-      }
 
-      let params = {
-        PRS: {
-          saleTeamId: parseInt(self.select_index),
-          salerId: self.checked_teamman
-        }
-      };
-      this.Axios.delete("/saler/saleTeam/salers", params).then(data => {
-        if (data.data.code == 0) {
-          this.$message({
-            message: "删除成员成功！",
-            type: "success"
-          });
-          // console.log(data.data.data);
-          self.teammans = data.data.data;
-          self.create_fun();
-          // console.log(self.team_allsubdata);
-        } else {
-          this.$message({
-            message: data.data.msg,
-            type: "warning"
-          });
-        }
+      this.$confirm("确认删除成员？").then(_ => {
+        let params = {
+          PRS: {
+            saleTeamId: parseInt(self.select_index),
+            salerId: self.checked_teamman
+          }
+        };
+        this.Axios.delete("/saler/saleTeam/salers", params).then(data => {
+          if (data.data.code == 0) {
+            this.$message({
+              message: "删除成员成功！",
+              type: "success"
+            });
+            // console.log(data.data.data);
+            self.teammans = data.data.data;
+            self.create_fun();
+            // console.log(self.team_allsubdata);
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        });
       });
     }
   }
@@ -693,6 +709,8 @@ $font-color = #999
       border 1px solid #d9d9d9
       border-top 0
       height 630px
+      .el-tree-node__content
+        height 100px
     .el-tree-node
       height 100px
     .left_submenu_div
@@ -701,6 +719,14 @@ $font-color = #999
       border-top-right-radius 5px
       line-height 3.5
       border 1px solid #d9d9d9
+      .selectManDiv
+        margin-top 20px
+        .selectManText
+          color #000
+          font-size 15px
+        .proSearch
+          margin-bottom 5px
+          width 315px
   .right_subdiv
     border 1px solid #d9d9d9
     width 92%
@@ -721,6 +747,9 @@ $font-color = #999
         text-align right
         .addteam_lefdev
           text-align left
+          .proSearch
+            margin-bottom 5px
+            width 315px
         .salemans_search_input
           width 30%
       .checkbox_class

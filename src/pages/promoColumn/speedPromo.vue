@@ -6,37 +6,42 @@
         <el-breadcrumb-item>快捷推广</el-breadcrumb-item>
       </el-breadcrumb>
       <div>
-        快捷推广
-        <div class="top_righttxt">
-          <el-checkbox v-model="open_tf" size="small" @change="openTF">开启</el-checkbox>
-          快速推广数量：
-          <el-select v-model="value" placeholder="请选择" size="small" @change="numberChange">
-            <el-option
-              v-for="item in options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value">
-            </el-option>
-          </el-select>
-          <el-dialog
-          title="设置推广类别"
-          :visible.sync="speedPromo_dialog"
-          width="950px" align="left">
-          <div class="content">
-            <div class="item" v-for="kind in allPromoData" :key="kind.id">
-                <div class="parent">
-                  <el-radio v-model="kind_checked" :label="kind.id">{{kind.categoryName}}</el-radio>
-                </div>
-                <div class="child" v-show="kind.categoryList.length != 0">
-                  【 <el-radio v-model="kind_checked" class="childText" :label="child.id" v-for="child in kind.categoryList" :key="child.id">{{ child.categoryName }}</el-radio> 】
-                </div>
-            </div>
+        <div class="topMenu">
+          <div class="topLeftMenu">
+            <span class="redfont">快捷推广</span>
           </div>
-          <span slot="footer" class="dialog-footer">
-            <el-button @click="speedPromo_dialog = false" size="small">取 消</el-button>
-            <el-button type="primary" @click="setPromo" size="small">确 定</el-button>
-          </span>
-        </el-dialog>
+          <div class="top_righttxt">
+            <el-checkbox v-model="open_tf" size="small" @change="openTF">开启</el-checkbox>
+            快速推广数量：
+            <el-select v-model="value" placeholder="请选择" size="small" @change="numberChange" style="width:100px">
+              <el-option
+                v-for="item in options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value">
+              </el-option>
+            </el-select>
+            <el-dialog
+            title="设置推广类别"
+            :visible.sync="speedPromo_dialog"
+            width="950px" align="left">
+            <el-checkbox-group v-model="checkList">
+              <div class="item" v-for="item in promoAllData" :key="item.id">
+                <div class="parent">
+                  <el-checkbox :label="item.id" @change="changeItem(item)">{{item.categoryName}}</el-checkbox>
+                </div> 
+                <div class="child" v-show="item.categoryList.length > 0">
+                    【 <el-checkbox class="childText" :label="child.id" v-for="child in item.categoryList" :key="child.id" @change="changeChild(child,item)">{{ child.categoryName }}</el-checkbox> 】
+                </div> 
+              </div>
+            </el-checkbox-group>
+            <br/><br/>
+            <span slot="footer" class="dialog-footer">
+              <el-button @click="speedPromo_dialog = false" size="small">取 消</el-button>
+              <el-button type="primary" @click="setPromo" size="small">确 定</el-button>
+            </span>
+            </el-dialog>
+          </div>
         </div>
         <div class="imgDisplay">
           <el-row>
@@ -96,6 +101,7 @@ import utils from "@/commons/Batar/utils";
 export default {
   data() {
     return {
+      checkList: [], //新增推广类别确认数组
       speedpromoData: [], //快捷推广数据列表
       speedpromoImgData: [], //快捷推广数据图片数据
       open_tf: true, //快捷推广的开启
@@ -126,8 +132,7 @@ export default {
       speedPromoImgList: [], //快捷推广图片库数据
       speedPromo_dialog: false, //“设置推广类别”弹出框
       speedPromoSelectData: "", //“设置推广类别”弹出框的ID
-      allPromoData: [], //系统推广类别属性
-      kind_checked: "", //推广类别选中项
+      promoAllData: [], //系统推广类别属性
       imgset_dialog: false, //设置图标弹出框
       imgsetSelectData: [], //设置图标弹出框选中数据
       img_checked: "", //现在默认图标
@@ -143,13 +148,12 @@ export default {
     created_fun() {
       var self = this;
       //快捷推广数据对接
-      this.Axios
-        .get("/promotion/promotion/list")
+      this.Axios.get("/promotion/promotion/list")
         .then(data => {
           if (data.data.code == 0) {
             self.value = data.data.data.length;
             self.speedpromoData = data.data.data;
-            console.log(self.speedpromoData)
+            // console.log(self.speedpromoData)
             self.open_tf = data.data.data[0].isOpen;
             self.speedpromoImgData = [];
             for (var i = 0; i < data.data.data.length; i++) {
@@ -167,8 +171,7 @@ export default {
       let params = {
         isOpen: self.open_tf
       };
-      this.Axios
-        .put("/promotion/promotion/setOpen", params)
+      this.Axios.put("/promotion/promotion/setOpen", params)
         .then(data => {
           if (data.data.code == 0) {
           } else {
@@ -190,8 +193,7 @@ export default {
           index: self.value
         }
       };
-      this.Axios
-        .get("/promotion/promotion", params)
+      this.Axios.get("/promotion/promotion", params)
         .then(data => {
           if (data.data.code == 0) {
             self.speedpromoData = data.data.data;
@@ -225,8 +227,7 @@ export default {
         id: elem.id,
         name: elem.name
       };
-      this.Axios
-        .put("/promotion/promotion", params)
+      this.Axios.put("/promotion/promotion", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -249,8 +250,7 @@ export default {
     //更换图片弹出框
     imgsetDialog(elem) {
       var self = this;
-      this.Axios
-        .get("/promotion/promotion/imagelist")
+      this.Axios.get("/promotion/promotion/imagelist")
         .then(data => {
           if (data.data.code == 0) {
             self.speedPromoImgList = data.data.data;
@@ -263,7 +263,10 @@ export default {
               for (var i = 0; i < self.speedpromoImgData.length; i++) {
                 // console.log(self.speedpromoImgData[i])
                 // console.log(self.speedPromoImgList[j])
-                if (self.speedPromoImgList[j].imageUrl != self.speedpromoImgData[i]) {
+                if (
+                  self.speedPromoImgList[j].imageUrl !=
+                  self.speedpromoImgData[i]
+                ) {
                   subData.isSave = 0; //没有设置推广的图片为0
                 } else {
                   subData.isSave = 1; //已经设置推广的图片为1
@@ -276,7 +279,7 @@ export default {
               }
               self.existData.push(subData);
             }
-            console.log(self.existData)
+            console.log(self.existData);
           }
           self.imgsetSelectData = elem;
           self.imgset_dialog = true;
@@ -305,8 +308,7 @@ export default {
             id: self.imgsetSelectData.id,
             imageUrl: self.existData[i].img.imageUrl
           };
-          this.Axios
-            .put("/promotion/promotion/image", params)
+          this.Axios.put("/promotion/promotion/image", params)
             .then(data => {
               if (data.data.code == 0) {
                 this.$message({
@@ -331,30 +333,52 @@ export default {
     //设置推广类别弹框
     speedPromoOpen(elem) {
       var self = this;
-      this.Axios
-        .get("/promotion/category")
+      this.Axios.get("/promotion/category")
         .then(data => {
           if (data.data.code == 0) {
-            self.allPromoData = data.data.data;
+            self.promoAllData = data.data.data;
+
+            self.checkList = [elem.categoryId];
+            for (var i in self.promoAllData) {
+              if(elem.categoryId == self.promoAllData[i].id){
+                self.promoAllData[i].layer = 1; //如果是1级大类
+                for(var j in self.promoAllData[i].categoryList){
+                  self.checkList.push(self.promoAllData[i].categoryList[j].id)
+                }
+              }else{
+                self.promoAllData[i].layer = 2; //默认是2级小类
+              }
+            }
+
           }
         })
         .catch(err => {
-          this.speedPromoOpen(elem);
+          this.extCatch(err, this.speedPromoOpen);
         });
       this.speedPromo_dialog = true;
       self.speedPromoSelectData = elem;
-      self.kind_checked = elem.categoryId;
     },
     //设置推广类别
     setPromo() {
       var self = this;
+
+      //选择一级的情况下，过滤掉二级分类的id
+      for (var i in self.promoAllData) {
+        if (self.promoAllData[i].layer == 1) {
+          for (var j in self.promoAllData[i].categoryList) {
+            self.removeByValue(
+              self.checkList,
+              self.promoAllData[i].categoryList[j].id
+            );
+          }
+        }
+      }
       let params = {
         id: self.speedPromoSelectData.id,
         name: self.speedPromoSelectData.name,
-        categoryId: self.kind_checked
+        categoryId: self.checkList[0]
       };
-      this.Axios
-        .put("/promotion/promotion", params)
+      this.Axios.put("/promotion/promotion", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -390,8 +414,7 @@ export default {
       formData.append("file", e.target.files[0]);
       formData.append("type", 0);
 
-      this.Axios
-        .post(`${this.fileAddress}/image/upload`, formData)
+      this.Axios.post(`${this.fileAddress}/image/upload`, formData)
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data[0].url);
@@ -399,8 +422,7 @@ export default {
               id: self.imgsetSelectData.id,
               imageUrl: data.data.data[0].url
             };
-            this.Axios
-              .put("/promotion/promotion/image", params)
+            this.Axios.put("/promotion/promotion/image", params)
               .then(data => {
                 if (data.data.code == 0) {
                   this.$message({
@@ -439,8 +461,7 @@ export default {
           imageUrl: elem.img.id
         }
       };
-      this.Axios
-        .delete("/promotion/promotion/image/" + elem.img.id, params)
+      this.Axios.delete("/promotion/promotion/image/" + elem.img.id, params)
         .then(data => {
           if (data.data.code == 0) {
             for (var i = 0; i < self.existData.length; i++) {
@@ -464,6 +485,99 @@ export default {
         .catch(err => {
           this.extCatch(err, this.delImgId);
         });
+    },
+    
+    //新增推广展示改变父类的多选框选择1级大类
+    changeItem(elem) {
+      var self = this;
+      for (var p in elem.categoryList) {
+        elem.categoryList[p].layer = 1;
+      }
+      elem.layer = 1;
+
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        self.checkList = [];
+        self.checkList.push(elem.id);
+        for (var i in elem.categoryList) {
+          self.checkList.push(elem.categoryList[i].id);
+        }
+      } else {
+        //选中数组已经没有了数组
+        for (var i in elem.categoryList) {
+          for (var j in self.checkList) {
+            if (self.checkList[j] == elem.categoryList[i].id) {
+              self.removeByValue(self.checkList, self.checkList[j]);
+            }
+          }
+        }
+      }
+      self.checkList = self.removeListRepeat(self.checkList); //数组去重
+    },
+    //推广类别选择2级小类
+    changeChild(elem, item) {
+      var self = this;
+      // console.log(elem)
+      // console.log(item)
+      self.checkList = [];
+      if ((elem.layer = 1)) {
+        for (var p in item.categoryList) {
+          item.categoryList[p].layer = 2;
+          self.removeByValue(self.checkList, item.categoryList[p].id);
+        }
+        self.checkList.push(elem.id);
+      }
+      item.layer = 2;
+
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        for (var i in self.promoAllData) {
+          if (self.promoAllData[i].categoryList.length != 0) {
+            for (var j in self.promoAllData[i].categoryList) {
+              if (self.promoAllData[i].categoryList[j].id == elem.id) {
+                for (
+                  var k = 0;
+                  k < self.promoAllData[i].categoryList.length;
+                  k++
+                ) {
+                  self.removeByValue(
+                    self.checkList,
+                    self.promoAllData[i].categoryList[k].id
+                  );
+                }
+                self.removeByValue(self.checkList, self.promoAllData[i].id);
+                self.checkList.push(elem.id);
+              }
+            }
+          }
+        }
+      } else {
+        //当多选数组没有此数组编号
+        // console.log(self.checkList);
+      }
+    },
+    //删除子元素
+    removeByValue(arr, val) {
+      for (var i in arr) {
+        if (arr[i] == val) {
+          arr.splice(i, 1);
+          break;
+        }
+      }
+    },
+    //新增推广展示去重
+    removeListRepeat(arr) {
+      var res = [];
+      var json = {};
+      for (var i in arr) {
+        if (!json[arr[i]]) {
+          res.push(arr[i]);
+          json[arr[i]] = 1;
+        }
+      }
+      return res;
     }
   }
 };
@@ -489,13 +603,18 @@ $font-color = #999
     color #333
   .red_font
     color $base-color
-  .top_righttxt
-    width 90%
-    float right
-    text-align right
+  .topMenu
+    height 45px
+    .topLeftMenu
+      width 35%
+      float left
+    .top_righttxt
+      width 40%
+      float right
+      text-align right
   .imgDisplay
     border 1px solid #eee
-    margin-top 40px
+    margin-top 0px
     border-radius 3px
     min-height 720px
   .displayDiv
@@ -535,6 +654,7 @@ $font-color = #999
         margin-left 8px
       .speed_div
         padding 20px
+        font-size 14px
         span
           color $font-color
         .speedpromo_txt
@@ -593,6 +713,8 @@ $font-color = #999
     margin-bottom 30px
     display flex
     align-items top
+    color #000
+    font-size 14px
     .child .el-radio
       color #999
     .text

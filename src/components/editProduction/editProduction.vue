@@ -380,23 +380,10 @@ export default {
         .catch(err => {})
     },
     uploadFile(e) {
-      let formData = new FormData()
-      formData.append('file', e.target.files[0])
-      formData.append('type', 1)
-      this.Axios
-        .post(`${this.fileAddress}/image/upload`, formData)
-        .then(res => {
-          let result = res.data
-          if (result.code == 0) {
-            this.allImgs.push(`${this.fileAddress}${result.data[0].url}`)
-            this.submitData.imageList.push({ imageUrl: result.data[0].url })
-          } else {
-            this.$message.error(result.msg)
-          }
-        })
-        .catch(err => {
-          this.extCatch(err, this.uploadFile)
-        })
+      utils.commonUpload(this, e, 0, data => {
+        this.allImgs.push(`${this.fileAddress}${data[0].url}`)
+        this.submitData.imageList.push({ imageUrl: data[0].url })
+      })
     },
     delPic(src) {
       utils.delDataFromArray(this.allImgs, src)

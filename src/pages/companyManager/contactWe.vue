@@ -46,7 +46,7 @@ export default {
         .then(res => {
           let result = res.data
           if (result.code == 0) {
-            this.companyInfo = result.data[0]
+            this.companyInfo = result.data
           } else {
             this.$message.error(result.msg)
           }

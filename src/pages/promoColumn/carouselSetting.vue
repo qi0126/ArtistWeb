@@ -9,15 +9,14 @@
             提示：建议使用JPG格式，2M以下图片，尺寸像素1440×604。点击顺序拖动图片可变换轮播图片顺序
         </div>
         <div v-loading.fullscreen.lock="fullscreenLoading"></div>
-        <el-button type="primary" plain size="small" :disabled="addCarouBtnTF" @click="addCarouBtn">增加轮播</el-button>
-        
+        <el-button plain size="small" :disabled="addCarouBtnTF" @click="addCarouBtn">增加轮播</el-button>
         <div>
             <el-row>
                 <el-col :span="24">
                     <div class="add_carousel_div" v-show="addCarouselTF">
                         <el-col :span="2">
                             <div class="title_name">
-                                标 题：
+                                标        题：
                             </div>
                         </el-col>
                         <el-col :span="22">
@@ -101,56 +100,60 @@
                         </el-col>
                         <el-col :span="22">
                             <div class="carousel_img_div">
-                                <el-row>
-                                    <el-col  v-for='(subimg,index) in item.carouselImages' :key="index" class="carouselImageDiv">
-                                        <div class="carousel_subdiv">
-                                            <div class="carou_sub_top">
-                                                <div class="carou_sub_num">{{index+1}}</div>
-                                                <span class="carou_sub_delbtn" @click="delImgDa(subimg)"><i class="iconfont">&#xe656;</i></span>
-                                            </div>
-                                            <div class="carou_sub_center">
-                                                <img :src="fileAddress+'/'+subimg.imageUrl" class="carou_subcenter_img"/>
-                                            </div>
-                                            <div class="carou_sub_bottom">
-                                                <div>
-                                                    <el-select v-model="subimg.type" placeholder="请选择" size="small" @change="changeType(subimg)" style="width:170px">
-                                                        <el-option
-                                                        v-for="item in options"
-                                                        :key="item.value"
-                                                        :label="item.label"
-                                                        :value="item.value">
-                                                        </el-option>
-                                                    </el-select>
-                                                    <span v-if="subimg.type == 2">
-                                                        <el-button type="primary" plain class="carou_sub_selectbtn" @click="selectcarou_btn(subimg)" size="small">选择类别</el-button>
-                                                        <div class="carou_subbottom_txt" v-if="modalShow">
-                                                            <span v-if="subimg.typeContent != ''"><span class="carou_subbottom_span">已选择类别 : </span>{{subimg.categoryName}}</span>
-                                                            <span v-else class="red_font">未选择类别</span>
-                                                        </div>
-                                                    </span>
-                                                    <span v-if="subimg.type == 1">
-                                                        <el-button type="primary" plain class="carou_sub_selectbtn" @click="selectonepro(subimg)" size="small">选择单品</el-button>
-                                                        <div class="carou_subbottom_txt" v-if="modalShow">
-                                                          <div v-if="subimg.typeContent != ''">
-                                                              <img :src="[subimg.headImage == null?'/static/imgs/syBg.png':fileAddress+'/'+subimg.headImage]" class="carou_subbottom_img"/>
-                                                            <!-- <img src="/static/imgs/syBg.png" class="carou_subbottom_img"/> -->
-                                                            <p  v-if="modalShow">{{subimg.productName}}</p>
-                                                            <span class="carou_subbottom_span">{{subimg.productNumber}}</span>
+                              <el-row>
+                                  <draggable :list="item.carouselImages" @update="changeImg(item.carouselImages)" :options="{animation: 300,handle:'.carouselImageDiv'}">
+                                    <transition-group name="list-complete" >
+                                      <el-col  v-for='(subimg,index) in item.carouselImages' :key="index" class="carouselImageDiv">
+                                          <div class="carousel_subdiv">
+                                              <div class="carou_sub_top">
+                                                  <div class="carou_sub_num">{{index+1}}</div>
+                                                  <span class="carou_sub_delbtn" @click="delImgDa(subimg)"><i class="iconfont">&#xe656;</i></span>
+                                              </div>
+                                              <div class="carou_sub_center">
+                                                  <img :src="fileAddress+'/'+subimg.imageUrl" class="carou_subcenter_img"/>
+                                              </div>
+                                              <div class="carou_sub_bottom">
+                                                  <div>
+                                                      <el-select v-model="subimg.type" placeholder="请选择" size="small" @change="changeType(subimg)" style="width:170px">
+                                                          <el-option
+                                                          v-for="item in options"
+                                                          :key="item.value"
+                                                          :label="item.label"
+                                                          :value="item.value">
+                                                          </el-option>
+                                                      </el-select>
+                                                      <span v-if="subimg.type == 2">
+                                                          <el-button type="primary" plain class="carou_sub_selectbtn" @click="selectcarou_btn(subimg)" size="small">选择类别</el-button>
+                                                          <div class="carou_subbottom_txt" v-if="modalShow">
+                                                              <span v-if="subimg.typeContent != ''"><span class="carou_subbottom_span">已选择类别 : </span>{{subimg.categoryName}}</span>
+                                                              <span v-else class="red_font">未选择类别</span>
                                                           </div>
-                                                          <div v-else>
-                                                            <img src="/static/imgs/syBg.png" class="carou_subbottom_img"/>
-                                                            <p class="red_font">未选择产品</p>
+                                                      </span>
+                                                      <span v-if="subimg.type == 1">
+                                                          <el-button type="primary" plain class="carou_sub_selectbtn" @click="selectonepro(subimg)" size="small">选择单品</el-button>
+                                                          <div class="carou_subbottom_txt" v-if="modalShow">
+                                                            <div v-if="subimg.typeContent != ''">
+                                                                <img :src="[subimg.headImage == null?'/static/imgs/syBg.png':fileAddress+'/'+subimg.headImage]" class="carou_subbottom_img"/>
+                                                              <!-- <img src="/static/imgs/syBg.png" class="carou_subbottom_img"/> -->
+                                                              <p  v-if="modalShow">{{subimg.productName}}</p>
+                                                              <span class="carou_subbottom_span">{{subimg.productNumber}}</span>
+                                                            </div>
+                                                            <div v-else>
+                                                              <img src="/static/imgs/syBg.png" class="carou_subbottom_img"/>
+                                                              <p class="red_font">未选择产品</p>
+                                                            </div>
                                                           </div>
-                                                        </div>
-                                                    </span>
-                                                    <div  v-if="subimg.type == 0" class="carou_subbottom_txt">
-                                                        <el-input v-model="subimg.typeContent" placeholder="请输入要跳转的网址" size="small" @change="changeUrl(subimg)"></el-input>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </el-col>
-                                </el-row>
+                                                      </span>
+                                                      <div  v-if="subimg.type == 0" class="carou_subbottom_txt">
+                                                          <el-input v-model="subimg.typeContent" placeholder="请输入要跳转的网址" size="small" @change="changeUrl(subimg)"></el-input>
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      </el-col>
+                                    </transition-group>
+                                  </draggable>
+                              </el-row>
                             </div>
                             <div class="img_upload_class">
                                 <div class="img_upload_btn" @click="imageUpload(item)">+选择从电脑上传</div>
@@ -227,10 +230,18 @@
         :visible.sync="selectone_dialog"
         width="950px">
             <div>
+              <el-select v-model="value" placeholder="全部类别" size="small">
+                <el-option
+                  v-for="item in options"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+                </el-option>
+              </el-select>
                 <el-input
                     placeholder="请输入内容"
-                    v-model="selecone_search" size="small">
-                    <i slot="prefix" class="el-input__icon el-icon-search"></i>
+                    v-model="selecone_search" size="small" class="proSearch">
+                    <el-button slot="append" icon="el-icon-search"></el-button>
                 </el-input>
                 <div class="proImgDiv">
                   <el-row :gutter="20" v-loading="productLoading">
@@ -280,15 +291,20 @@
 </template>
 
 <script>
+import draggable from "vuedraggable";
 import utils from "@/commons/Batar/utils";
 export default {
+  components: {
+    draggable
+  },
+
   data() {
     return {
       addCarouBtnTF: false, //增加轮播按钮禁用或有效
       addCarouselTF: false, //打开新增轮播
       carouselData: [], //轮播列表数据
 
-      modalShow:true,//数据打散重新渲染
+      modalShow: true, //数据打散重新渲染
 
       newCarouselName: "",
       fullscreenLoading: false, //图片上传加载中
@@ -1099,7 +1115,12 @@ export default {
       var self = this;
       self.pageNo = e;
       self.carouselLoad(self.pageSize, self.pageNo);
-    }
+    },
+    //图片拖动输出数据
+    changeImg(elem) {
+      console.log(elem);
+    },
+
   }
 };
 </script>
@@ -1333,6 +1354,9 @@ $font-color = #999
     .loading
       text-align center
       padding 20px
+  .proSearch
+    margin-bottom 5px
+    width 315px
 </style>
 
 

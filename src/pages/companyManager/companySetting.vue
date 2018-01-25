@@ -18,7 +18,6 @@
         border
         style="width:100%">
         <el-table-column
-          width="200"
           align="center"
           label="公司名称">
           <template slot-scope="scope">
@@ -26,7 +25,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          width="200"
           align="center"
           label="主页">
           <template slot-scope="scope">
@@ -34,7 +32,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          width="200"
           align="center"
           label="公司地址">
           <template slot-scope="scope">
@@ -42,7 +39,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          width="180"
           align="center"
           label="联系人">
           <template slot-scope="scope">
@@ -50,7 +46,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          width="200"
           align="center"
           label="联系电话">
           <template slot-scope="scope">
@@ -58,15 +53,13 @@
           </template>
         </el-table-column>
         <el-table-column
-          width="200"
           align="center"
           label="公司logo">
           <template slot-scope="scope">
-            <img class="logoImg bt-hover" :src="scope.row.logoUrl" alt="暂无Logo" onClick="uploadLogo.click()">
+            <img class="logoImg bt-hover" :src="fileAddress + scope.row.logoUrl" alt="暂无Logo" onClick="uploadLogo.click()">
           </template>
         </el-table-column>
         <el-table-column
-          width="305"
           align="center"
           label="公司状态">
           <template slot-scope="scope">
@@ -77,9 +70,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          fixed="right"
           align="center"
-          width="192"
           label="操作">
           <template slot-scope="scope">
             <el-button type="danger" size="small" @click="delCompany(scope.row.id)">删除</el-button>
@@ -121,7 +112,7 @@
           </div>
           <div class="item">
             <span class="text">公司logo：</span>
-            <img :src="addCompanyData.logoUrl" class="bgImg bt-hover" alt="暂无背景图" onClick="logoFile.click()">
+            <img v-if="isInit == true" :src="fileAddress + addCompanyData.logoUrl" class="bgImg bt-hover" alt="暂无背景图" onClick="logoFile.click()">
             <input type="file" id="logoFile" @change="logoFileEvent" hidden>
           </div>
         </div>
@@ -143,6 +134,7 @@ import utils from '@/commons/Batar/utils'
 export default {
   data() {
     return {
+      isInit: true,
       companys: [],
       addCompanyDialog: false,
       uploadImg: 'static/imgs/syBg.png',
@@ -161,8 +153,8 @@ export default {
   },
   methods: {
     uploadLogoChange(e) {
-      utils.encodeBase64(e).then(data => {
-        this.changeSetting('logoUrl', data)
+      utils.commonUpload(this, e, 0, data => {
+        this.changeSetting('logoUrl', data[0].url)
       })
     },
     delCompany(id) {
@@ -170,8 +162,7 @@ export default {
         type: 'warning'
       })
         .then(() => {
-          this.Axios
-            .delete(`company/company/${id}`)
+          this.Axios.delete(`company/company/${id}`)
             .then(res => {
               let result = res.data
               if (result.code == 0) {
@@ -188,13 +179,12 @@ export default {
         .catch(err => {})
     },
     logoFileEvent(e) {
-      utils.encodeBase64(e).then(data => {
-        this.addCompanyData.logoUrl = data
+      utils.commonUpload(this, e, 0, data => {
+        this.addCompanyData.logoUrl = data[0].url
       })
     },
     getCompanysEvent() {
-      this.Axios
-        .get('company/company')
+      this.Axios.get('company/company')
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -212,13 +202,12 @@ export default {
         id: this.currentSelRow.id,
         [name]: val
       }
-      this.Axios
-        .put('company/company', params)
+      this.Axios.put('company/company', params)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
             this.$message.success('修改成功')
-            if(name == 'logoUrl'){
+            if (name == 'logoUrl') {
               this.currentSelRow.logoUrl = val
             }
           } else {
@@ -234,8 +223,7 @@ export default {
     },
     addCompanyEvent() {
       if (this.checkAddCompany()) {
-        this.Axios
-          .post('/company/company', this.addCompanyData)
+        this.Axios.post('/company/company', this.addCompanyData)
           .then(res => {
             let result = res.data
             if (result.code == 0) {

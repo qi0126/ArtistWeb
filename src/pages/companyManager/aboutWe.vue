@@ -15,9 +15,9 @@
         </div>
         <div class="imgPlace">
           <div class="imgs">
-            <div class="item" @mouseover="imgMouseover(imgObj.id)" @mouseout="imgMouseout" v-for="imgObj in allData.images" v-if="imgObj.type==0">
+            <div class="item" @mouseover="tempImgId = imgObj.id" @mouseout="tempImgId = null" v-for="imgObj in allData.images" v-if="imgObj.type==0">
               <div class="itemImg">
-                <img :src="imgObj.image" alt="暂无图片" class="myImg">
+                <img :src="fileAddress + imgObj.image" alt="暂无图片" class="myImg">
                 <i class="el-icon-circle-close-outline bt-hover" v-show="imgObj.id == tempImgId" @click="delPic(imgObj.id)"></i>
               </div>
             </div>
@@ -34,7 +34,7 @@
             :rows="4"
             placeholder="请输入内容（0/500）"
             :maxlength="500"
-            @change="introChange('companyIntro',allData.companyIntro,0)"
+            @change="updateIntrol('companyIntro',allData.companyIntro,0)"
             v-model="allData.companyIntro">
           </el-input>
         </div>
@@ -45,9 +45,9 @@
         </div>
         <div class="imgPlace">
           <div class="imgs">
-            <div class="item" @mouseover="imgMouseover(imgObj.id)" @mouseout="imgMouseout" v-for="imgObj in allData.images" v-if="imgObj.type==1">
+            <div class="item" @mouseover="tempImgId = imgObj.id" @mouseout="tempImgId = null" v-for="imgObj in allData.images" v-if="imgObj.type==1">
               <div class="itemImg">
-                <img :src="imgObj.image" alt="暂无图片" class="myImg">
+                <img :src="fileAddress + imgObj.image" alt="暂无图片" class="myImg">
                 <i class="el-icon-circle-close-outline bt-hover" v-show="imgObj.id == tempImgId" @click="delPic(imgObj.id)"></i>
               </div>
             </div>
@@ -64,7 +64,7 @@
             :rows="4"
             placeholder="请输入内容（0/500）"
             :maxlength="500"
-            @change="introChange('appIntro',allData.appIntro,1)"
+            @change="updateIntrol('appIntro',allData.appIntro,1)"
             v-model="allData.appIntro">
           </el-input>
         </div>
@@ -93,23 +93,24 @@ export default {
         type: 'warning'
       })
         .then(res => {
-          this.Axios.delete(`/company/aboutUs/${id}`).then(res=>{
-            let result = res.data
-            if(result.code == 0){
-              this.$message.success('删除成功')
-              this.getAllInfo()
-            }else{
-              this.$message.error(result.msg)
-            }
-          }).catch(err=>{
-            this.extCatch(err,this.delPic)
-          })
+          this.Axios.delete(`/company/aboutUs/${id}`)
+            .then(res => {
+              let result = res.data
+              if (result.code == 0) {
+                this.$message.success('删除成功')
+                this.getAllInfo()
+              } else {
+                this.$message.error(result.msg)
+              }
+            })
+            .catch(err => {
+              this.extCatch(err, this.delPic)
+            })
         })
         .catch(err => {})
     },
     getAllInfo() {
-      this.Axios
-        .get('/company/aboutUs')
+      this.Axios.get('/company/aboutUs')
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -123,33 +124,27 @@ export default {
         })
     },
     uploadImgEvent(e) {
-      utils.encodeBase64(e).then(data => {
-        let count = 0
-        this.allData.images.forEach(imgObj => {
-          if (imgObj.type == this.tempType) {
-            count++
-          }
-        })
-        if (count >= 4) {
-          this.$message.error('抱歉，最多上传4张图片')
-          return false
-        }
-        this.introChange('imageUrl', data, this.tempType)
+      utils.commonUpload(this, e, 0, data => {
+        let imageUrl = data[0].url
+        this.updateImage(imageUrl, this.tempType)
       })
     },
-    imgMouseover(imgId) {
-      this.tempImgId = imgId
+    updateImage(imageUrl, type) {
+      let params = {
+        imageUrl: imageUrl,
+        type: type
+      }
+      this.updateDetail(params)
     },
-    imgMouseout() {
-      this.tempImgId = null
-    },
-    introChange(name, val, type) {
+    updateIntrol(name, val, type) {
       let params = {
         [name]: val,
         type: type
       }
-      this.Axios
-        .post('/company/aboutUs', params)
+      this.updateDetail(params)
+    },
+    updateDetail(params) {
+      this.Axios.post('/company/aboutUs', params)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -160,7 +155,7 @@ export default {
           }
         })
         .catch(err => {
-          this.extCatch(err, this.introChange)
+          this.extCatch(err, this.updateDetail)
         })
     },
     setType(type) {

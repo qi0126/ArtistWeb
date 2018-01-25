@@ -53,8 +53,10 @@
                   type="selection" class="salemans_table">
                 </el-table-column>
                 <el-table-column
-                  prop="name"
                   label="姓名">
+                  <template slot-scope="scope">
+                    <div style="cursor: pointer;">{{scope.row.name}}</div>
+                  </template>
                 </el-table-column>
               </el-table>
             </div>

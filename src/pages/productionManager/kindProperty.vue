@@ -100,7 +100,6 @@
         :visible.sync="tableDialog"
         width="20%">
         <div class="addKindWrapper">
-          <span class="title">类目名称：</span>
           <el-input size="small" v-model.trim="addKindName" placeholder="请输入产品类目名称"></el-input>
         </div>
         <span slot="footer" class="dialog-footer">

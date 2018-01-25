@@ -53,8 +53,11 @@
     </div>
 
     <div class="contentWrapper">
-      <el-collapse accordion>
-        <el-collapse-item v-for="order in allOrders" :key="order.id">
+      <el-collapse
+        v-loading="loading"
+        accordion
+        @change="collapseChange">
+        <el-collapse-item v-for="(order,index) in allOrders" :key="index" :name="index">
           <template slot="title">
             <div class="header">
               <el-checkbox></el-checkbox>
@@ -78,22 +81,27 @@
                 <span class="title">处理人：</span>
                 <span class="detail">{{ order.customerName }}</span>
               </div>
-              <div class="item">
+              <div class="item waitDetail">
                 <span class="title">状态：</span>
-                <span class="detail noDeal" v-if="order.orderStatus == 0">待处理</span>
+                <span class="detail noDeal" v-if="order.orderStatus == 0">待明细</span>
                 <span class="detail noConfirm" v-else-if="order.orderStatus == 1">待确认</span>
                 <span class="detail haveConfirm" v-else-if="order.orderStatus == 2">已确认</span>
               </div>
             </div>
           </template>
           <div class="content">
-            <div class="title">
+            <div class="title" v-if="order.orderStatus == 0">
               <span>出货明细详情</span>
             </div>
-            <div class="detail">
+            <div class="detail" v-if="order.orderStatus == 0">
               <div class="left">
-                <div class="item bt-hover" v-for="(item,index) in order.detailList" :key="item.id">
-                  <img v-if="item.product.headImage" :src="item.product.headImage" alt="暂无图片">
+                <div
+                  class="item bt-hover"
+                  :class="{'active':activeIndex == index}"
+                  v-for="(item,index) in order.ordersProductList"
+                  :key="item.id"
+                  @click="proClick(index)">
+                  <img v-if="item.product.headImage" :src="fileAddress + item.product.headImage" alt="暂无图片">
                   <img v-else src="static/imgs/syBg.png" alt="暂无图片">
                   <div class="info">
                     <div>{{ item.product.productName }}</div>
@@ -108,53 +116,148 @@
               </div>
               <div class="middle">
                 <div class="tip">备注信息</div>
-                <template v-for="item in order.detailList">
-                  <template v-for="remarkObj in item.remark" v-if="remarkObj.type == 2">
+                <div class="allRemarks">
+                  <template v-for="remark in remarks" v-if="remark.type == 2">
                     <div class="audio bt-hover">
                       <i class="iconfont audioIcon"></i>
                     </div>
                   </template>
-                </template>
-                <template v-for="item in order.detailList">
-                  <template v-for="remarkObj in item.remark" v-if="remarkObj.type == 1">
-                    <div class="remark">{{ remarkObj.content }}</div>
+                  <template v-for="remark in remarks" v-if="remark.type == 1">
+                    <div class="remark">{{ remark.content }}</div>
                   </template>
-                </template>
+                </div>
               </div>
               <div class="right">
                 <div class="optionWrapper">
                   <div class="tip">出货明细编辑</div>
                   <div class="btns">
-                    <el-button type="primary" class="el-icon-circle-plus" size="mini" plain> 添加明细</el-button>
-                    <el-button type="danger" class="el-icon-circle-close" size="mini"> 删除明细</el-button>
+                    <el-button type="primary" size="mini" plain @click="addDetail">添加明细</el-button>
                   </div>
                 </div>
                 <el-table
                   :data="addSpeciDatas"
                   border
+                  size="small"
+                  :max-height="200"
                   style="width: 100%">
                   <el-table-column
-                    type="selection"
-                    width="55">
+                    label="产品克重"
+                    align="center">
+                    <template slot-scope="scope">
+                      <el-input size="mini" v-model="scope.row.proWeight"></el-input>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    label="出货重量"
+                    align="center">
+                    <template slot-scope="scope">
+                      <el-input size="mini" v-model="scope.row.sellWeight"></el-input>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    label="出货数量"
+                    align="center">
+                    <template slot-scope="scope">
+                      <el-input size="mini" v-model="scope.row.sellCount"></el-input>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    v-for="(value,index) in tempSpecificationAttrs"
+                    :key="index"
+                    :label="value"
+                    align="center">
+                    <template slot-scope="scope">
+                      <el-input size="mini" v-model="scope.row[index]"></el-input>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    label="操作"
+                    align="center">
+                    <template slot-scope="scope">
+                      <el-button type="danger" size="mini" :disabled="delBtnStatus" @click.native.prevent="delDetail(scope.$index)">删除</el-button>
+                    </template>
                   </el-table-column>
                 </el-table>
                 <div class="submitDetail">
-                  <el-button type="primary" size="small" class="el-icon-success"> 提交明细</el-button>
+                  <el-button type="primary" size="mini" plain>提交明细</el-button>
                 </div>
               </div>
             </div>
-            <div class="total"></div>
+            <div class="total">
+              <div class="title" v-if="order.orderStatus == 0">
+                <span>出货明细汇总</span>
+              </div>
+              <div class="totalTable">
+                <el-table
+                  border
+                  size="small"
+                  :stripe="true"
+                  max-height="200"
+                  :data="totalDatas"
+                  style="width: 100%">
+                  <el-table-column
+                    type="index"
+                    width="50"
+                    align="center">
+                  </el-table-column>
+                  <el-table-column
+                    label="产品名称"
+                    prop="productName"
+                    align="center">
+                  </el-table-column>
+                  <el-table-column
+                    label="产品编码"
+                    prop="productNumber"
+                    align="center">
+                  </el-table-column>
+                  <el-table-column
+                    label="产品类目"
+                    prop="className"
+                    align="center">
+                  </el-table-column>
+                  <el-table-column
+                    v-for="(value,index) in tempAllAttrs"
+                    :key="index"
+                    :prop="index"
+                    :label="value"
+                    align="center">
+                  </el-table-column>
+                </el-table>
+              </div>
+              <div class="sendOrder">
+                <el-button size="mini" type="primary" class="el-icon-success" v-if="order.orderStatus == 0"> 发送订单</el-button>
+                <el-button size="mini" type="primary" class="el-icon-error" plain v-if="order.orderStatus == 2"> 取消订单</el-button>
+                <el-button size="mini" type="primary" class="el-icon-success" v-if="order.orderStatus == 2"> 跟进订单</el-button>
+              </div>
+            </div>
           </div>
         </el-collapse-item>
       </el-collapse>
+    </div>
+
+    <div class="pagerWrapper">
+      <span class="demonstration">共 {{ totalOrderCount }} 条</span>
+      <el-pagination
+        background
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page.sync="currentPage"
+        :page-sizes="pageSizes"
+        :page-size="pageSize"
+        layout="sizes, prev, pager, next"
+        :total="totalOrderCount">
+      </el-pagination>
     </div>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
+import utils from '@/commons/Batar/utils'
 export default {
   data() {
     return {
+      currentPage: 1,
+      loading: null,
       allOrders: [], // 所有订单
       filterKeys: {
         orderStatus: 0,
@@ -170,28 +273,164 @@ export default {
           { id: 3, name: '已确认订单' }
         ]
       },
-      addSpeciDatas: [] // 新增规格数组
+      addSpeciDatas: [{ proWeight: '', sellWeight: '', sellCount: '' }], // 新增规格数组
+      totalDatas: [], // 汇总数据
+      activeIndex: null,
+      selOrderIndex: null,
+      tempSpecificationAttrs: {},
+      tempAllAttrs: {},
+      delBtnStatus: true,
+      remarks: [],
+      totalOrderCount: 0,
+      pageSizes: [10, 20, 50],
+      pageSize: 10,
+      currentPage: 1
+      
     }
   },
   methods: {
+    handleSizeChange(val){
+      console.log(val)
+    },
+    handleCurrentChange(val){
+      console.log(val)
+    },
+    addDetail() {
+      let result = { proWeight: '', sellWeight: '', sellCount: '' }
+      for (let key in this.tempSpecificationAttrs) {
+        result[key] = ''
+      }
+      this.addSpeciDatas.push(result)
+    },
+    delDetail(index) {
+      this.addSpeciDatas.splice(index, 1)
+    },
+    proClick(proIndex) {
+      this.resetData()
+      this.activeIndex = proIndex
+      this.drawSpeciTable(proIndex)
+      this.drawTotalTable(proIndex)
+
+      this.remarks = this.allOrders[this.selOrderIndex].ordersProductList[
+        proIndex
+      ].remark
+    },
+    resetData() {
+      this.addSpeciDatas = [{ proWeight: '', sellWeight: '', sellCount: '' }]
+      this.tempSpecificationAttrs = {}
+      this.totalDatas = []
+      this.tempAllAttrs = {}
+    },
+    collapseChange(orderIndex) {
+      if (orderIndex !== '') {
+        this.resetData()
+        this.activeIndex = 0
+
+        this.selOrderIndex = orderIndex
+        this.remarks = this.allOrders[
+          this.selOrderIndex
+        ].ordersProductList[0].remark
+        this.drawSpeciTable(0)
+        this.drawTotalTable(0)
+      }
+    },
+    drawSpeciTable(index) {
+      let currentProAttrs = this.allOrders[this.selOrderIndex]
+        .ordersProductList[index].product.productClass.attrList
+      currentProAttrs.forEach(attrObj => {
+        if (attrObj.attrType == 3) {
+          let key = attrObj.id
+          let value = attrObj.attrCnName
+          this.$set(this.addSpeciDatas[0], [key], '')
+          this.$set(this.tempSpecificationAttrs, [key], value)
+        }
+      })
+    },
+    drawTotalTable(index) {
+      let currentProductData = this.allOrders[this.selOrderIndex]
+        .ordersProductList[index]
+
+      let currentProAttrs = currentProductData.product.productClass.attrList
+      let attrJsons = currentProductData.attrJson // type = 2(可选数据)
+      let SpecificationList = currentProductData.detailList // type = 3（规格数据）
+
+      let baseDataByBody = {
+        productName: currentProductData.product.productName,
+        productNumber: currentProductData.product.productNumber,
+        className: currentProductData.product.productClass.className
+      }
+
+      currentProAttrs.forEach(item => {
+        let key = item.id
+        let value = item.attrCnName
+        // drawHeader
+        if (item.attrType == 2 || item.attrType == 3) {
+          this.$set(this.tempAllAttrs, [key], value)
+        }
+        // 组装type = 2的数据到singleDataByBody
+        if (item.attrType == 2) {
+          let id = item.id
+          for (let key in attrJsons) {
+            if (id == key) {
+              baseDataByBody[id] = attrJsons[key]
+              break
+            } else {
+              baseDataByBody[id] = ''
+            }
+          }
+        }
+      })
+      // drawBody
+      if (SpecificationList.length > 0) {
+        SpecificationList.forEach(item => {
+          let tempObj = {}
+          currentProAttrs.forEach(childItem => {
+            if (childItem.attrType == 3) {
+              let id = childItem.id
+              for (let key in item.specificationJosn) {
+                if (id == key) {
+                  tempObj[id] = item.specificationJosn[key]
+                  break
+                } else {
+                  tempObj[id] = ''
+                }
+              }
+            }
+          })
+          let singleDataByBody = utils.deepClone(baseDataByBody)
+          for (let key in tempObj) {
+            singleDataByBody[key] = tempObj[key]
+          }
+          this.totalDatas.push(singleDataByBody)
+        })
+      }
+    },
     getAllOrders() {
-      this.Axios
-        .get('/order/orders/sales')
+      this.loading = true
+      this.Axios.get('/order/orders/sales')
         .then(res => {
           let result = res.data
           if (result.code == 0) {
+            this.totalOrderCount = result.data.data.total
+            this.loading = false
             this.allOrders = result.data.data.list
           } else {
             this.$message.error(result.msg)
           }
         })
         .catch(err => {
+          this.loading = false
           this.extCatch(err, this.getAllOrders)
         })
     }
   },
   created() {
     this.getAllOrders()
+  },
+  watch: {
+    addSpeciDatas(val) {
+      val.length <= 1 ? (this.delBtnStatus = true) : (this.delBtnStatus = false)
+    }
   }
 }
 </script>
@@ -227,10 +466,14 @@ $base-color = rgb(230, 14, 50)
   .contentWrapper
     .header
       display flex
-      justify-content space-between
-      margin-right 100px
       padding-left 16px
       .item
+        overflow hidden
+        text-overflow ellipsis
+        white-space nowrap
+        flex auto
+        text-align center
+        width 20%
         .title
           color #999999
         .noDeal
@@ -238,7 +481,10 @@ $base-color = rgb(230, 14, 50)
         .noConfirm
           color #E6A23C
         .haveConfirm
-          color $base-color
+          color #909399
+        &.waitDetail
+          flex 0 120px
+          width 120px
     .content
       padding-left 16px
       .title
@@ -261,11 +507,15 @@ $base-color = rgb(230, 14, 50)
           .item
             display flex
             align-items center
-            margin-bottom 8px
+            padding 10px
+            transition all 0.5s
+            &.active
+              background-color #FDE7EB
             img
               width 90px
               height 60px
               margin-right 10px
+              border-radius 3px
             .info
               overflow hidden
               div
@@ -276,35 +526,39 @@ $base-color = rgb(230, 14, 50)
           flex 0 15%
           width 15%
           border 1px solid #DBDBDB
-          padding 8px
           border-left none
-          height 300px
-          overflow auto
           .tip
             font-size 14px
-          .audio
-            background #F2F2F2
-            height 30px
-            padding-left 10px
-            border-radius 5px
-            line-height 30px
+            margin-left 8px
             margin-top 10px
-            .audioIcon:after
-              content '\e62c'
-              font-size 20px
-          .remark
-            background #F2F2F2
-            margin-top 10px
-            padding 5px 10px 
-            font-size 12px
-            border-radius 5px
+          .allRemarks
+            height 280px
+            overflow auto
+            padding 0 10px
+            .audio
+              background #F2F2F2
+              height 30px
+              padding-left 10px
+              border-radius 5px
+              line-height 30px
+              margin-top 10px
+              .audioIcon:after
+                content '\e62c'
+                font-size 20px
+            .remark
+              background #F2F2F2
+              margin-top 10px
+              padding 5px 10px
+              font-size 12px
+              border-radius 5px
         .right
+          overflow hidden
           flex auto
           border 1px solid #DBDBDB
           padding 8px
           border-left none
           border-radius 0 5px 5px 0
-          .optionWrapper 
+          .optionWrapper
             display flex
             justify-content space-between
             align-items center
@@ -314,5 +568,15 @@ $base-color = rgb(230, 14, 50)
           .submitDetail
             display flex
             justify-content center
-            margin-top 30px
+            margin-top 20px
+      .total
+        .sendOrder
+          display flex
+          justify-content center
+          margin-top 20px
+  .pagerWrapper
+    display flex
+    justify-content center
+    align-items center
+    margin 40px 0
 </style>

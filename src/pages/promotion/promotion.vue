@@ -99,7 +99,7 @@
             <span class="redfont">类别产品编辑</span>
             <div class="span_right">
 
-              <el-button size="small" @click="addPro">添加产品</el-button>
+              <el-button size="small" @click="addPro"><i class="iconfont">&#xe67f;</i> 添加产品</el-button>
               <el-dialog
                 title="添加产品到推广类别"
                 :visible.sync="add_pro_dialog"
@@ -113,13 +113,8 @@
                       :value="item.value">
                     </el-option>
                   </el-select>
-                  <el-input
-                    placeholder="请输入内容"
-                    v-model="pro_search"
-                    size="small"
-                    class="proSearch"
-                    >
-                    <i slot="prefix" class="el-input__icon el-icon-search"></i>
+                  <el-input placeholder="请输入产品名字、编码、产品类别名称" v-model="pro_search" class="proSearch" size="small">
+                    <el-button slot="append" icon="el-icon-search"></el-button>
                   </el-input>
                 </div>
                 <div ref="proDiv" class="proDiv">
@@ -987,7 +982,8 @@ $font-color = #999
       width 100%
       margin-bottom 15px
     .proSearch
-      width 350px
+      margin-bottom 5px
+      width 315px
   .right_div
     margin-left 20px
   .right_subdiv
