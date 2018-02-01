@@ -26,7 +26,7 @@
                 header-align="center"
                 label="发布标题">
                     <template slot-scope="scope">
-                        <el-input v-model="scope.row.title" :maxlength='16' placeholder="请输入内容" size="small" @blur="changeContent(scope.row)"></el-input>
+                        <el-input v-model="scope.row.title" :maxlength='16' placeholder="请输入内容" size="small" @blur="changeContent(scope.row)" class="inputCenter"></el-input>
                     </template>
                 </el-table-column>
                 <el-table-column
@@ -52,7 +52,7 @@
                 <template slot-scope="scope">
                     <el-button size="small" v-if="scope.row.upType != '0' && scope.row.content != ''" @click="uploadFileBtn(scope.row)">{{scope.row.content}}</el-button>
                     <el-button size="small" v-if="scope.row.upType != '0' && scope.row.content == ''" @click="uploadFileBtn(scope.row)" type="primary" plain>内容未选择</el-button>
-                    <el-input v-model="scope.row.content" v-if="scope.row.upType == '0'" placeholder="请输入内容地址" size="small" @blur="changeContent(scope.row)"></el-input>
+                    <el-input v-model="scope.row.content" v-if="scope.row.upType == '0'" placeholder="请输入内容地址" size="small" @blur="changeContent(scope.row)" class="inputCenter"></el-input>
                 </template>
                 </el-table-column>
                 <el-table-column
@@ -75,7 +75,7 @@
                 label="是否显示">
                     <template slot-scope="scope">
                         <el-radio-group v-model="scope.row.isShow" @change="changeContent(scope.row)">
-                            <el-radio :label='true'>是</el-radio>
+                            <el-radio :label='true' :disabled="scope.row.title == '' || scope.row.content == '' || scope.row.imageUrl == ''">是</el-radio>
                             <el-radio :label='false'>否</el-radio>
                         </el-radio-group>
                     </template>
@@ -87,8 +87,7 @@
                 label="操作">
                 <template slot-scope="scope">
                   <span v-if="scope.row.upType == '0' || scope.row.upType == '1'">
-                    <el-button type="primary" plain @click="contentClick(scope.row)" size="small" v-if="scope.row.content != ''">预览</el-button>
-                    <el-button type="primary" plain size="small" v-else disabled>预览</el-button>
+                    <el-button type="primary" plain @click="contentClick(scope.row)" size="small" :disabled="scope.row.title == '' || scope.row.content == '' || scope.row.imageUrl == '' ||viewTF">预览</el-button>
                   </span>
                   <span v-if="scope.row.upType == '2' || scope.row.upType == '3'">
                     <a type="button" :href="scope.row.contentUrl" v-if="scope.row.content != ''">
@@ -110,18 +109,19 @@
               <!-- 链接网址 -->
               <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 0"/>
               <!-- 视频文件 -->
-              <video :src="selectIdData.contentUrl" controls="controls" v-if="selectIdData.upType == 1" style="max-width:600px;object-fit: fill;margin:0 auto">
-                您的浏览器不支持 video 标签。
-              </video>
+              <div style="text-align:center">
+                <video :src="selectIdData.contentUrl" controls="controls" v-if="selectIdData.upType == 1" style="max-width:700px;object-fit: fill">
+                  您的浏览器不支持 video 标签。
+                </video>
+              </div>
               <!-- word文档 -->
-              <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 2"/>
+              <!-- <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 2"/> -->
               <!-- ppt文件 -->
-              <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 3"/>
+              <!-- <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 3"/> -->
               <br/>
               <!-- <span>{{selectIdData.contentUrl}}</span> -->
               <span slot="footer" class="dialog-footer">
-                <el-button @click="previewDialog = false" size="small">取 消</el-button>
-                <el-button type="primary" @click="previewDialog = false" size="small">确 定</el-button>
+                <el-button type="primary" @click="previewDialog = false" size="small">关 闭</el-button>
               </span>
             </el-dialog>
             <!-- 文件上传input -->
@@ -163,7 +163,8 @@ export default {
       ],
       previewDialog: false, //预览弹出框
       selectIdData: {}, //选中id数据
-      loading: true //网页加载中
+      loading: true, //网页加载中
+      viewTF:false,//预览其中一个参数禁用
     };
   },
   created() {
@@ -213,6 +214,7 @@ export default {
     contentClick(elem) {
       // console.log(elem);
       var self = this;
+
       self.selectIdData = elem;
       // self.previewUrl = elem.contentUrl;
       self.previewDialog = true;
@@ -241,6 +243,7 @@ export default {
     //上传封面文件后事件
     uploadimg_fun(e) {
       var self = this;
+      self.loading = true
       let formData = new FormData();
       formData.append("file", e.target.files[0]);
       formData.append("type", 0);
@@ -261,15 +264,16 @@ export default {
               type: "warning"
             });
           }
+          self.loading = false
         })
         .catch(err => {
           this.extCatch(err, this.uploadimg_fun);
+          self.loading = false
         });
     },
     //删除发现内容
     delContent(elem) {
-      // console.log(elem.id);
-      this.$confirm("确认要删除‘" + elem.title + "’的内容？")
+      this.$confirm(`认要删除‘${elem.title}’的内容？`)
         .then(_ => {
           this.Axios
             .delete("/content/content/" + elem.id)
@@ -288,19 +292,24 @@ export default {
     changeContent(elem) {
       var self = this;
       var str = elem.content;
-      var URLRexExp = new RegExp(
-        /^[A-Za-z]+:\/\/[A-Za-z0-9-_]+.[A-Za-z0-9-_%&\?\/.:=]+$/
-      );
-      if (URLRexExp.test(str) != true) {
-        this.$message({
-          message: "网址不合法，请重新输入！",
-          type: "warning"
-        });
-        // elem.contentUrl = ""
-        // self.changeUpload(elem)
-        return false;
-      }
 
+      if(elem.title == '' || elem.content == '' || elem.imageUrl == ''){
+        elem.isShow = false
+      }
+      if(elem.upType == 0){
+        var URLRexExp = new RegExp(
+          /^[A-Za-z]+:\/\/[A-Za-z0-9-_]+.[A-Za-z0-9-_%&\?\/.:=]+$/
+        );
+        if (URLRexExp.test(str) != true) {
+          this.$message({
+            message: "网址不合法，请重新输入！",
+            type: "warning"
+          });
+          self.viewTF = true
+          return false
+        }
+      }
+      self.viewTF = false
       this.Axios
         .put("/content/content", elem)
         .then(data => {
@@ -324,7 +333,6 @@ export default {
     //改变上传方类
     changeUpload(elem) {
       var self = this;
-      // console.log(elem)
       elem.content = "";
       elem.contentUrl = "";
       self.changeContent(elem);
@@ -339,17 +347,14 @@ export default {
     uploadFileFun(e) {
       var self = this;
       self.loading = true;
-      // console.log(e);
-      // console.log(self.tempElem);
       let formData = new FormData();
       formData.append("file", e.target.files[0]);
-      formData.append("type", self.tempElem.id);
+      formData.append("id", self.tempElem.id);
       this.Axios
         .post("zuul/content/content/" + self.tempElem.id, formData)
         .then(data => {
           if (data.data.code == 0) {
-            // self.loading = false;
-            // console.log(data.data.data);
+            self.loading = false;
             this.$message({
               message: "文件上传成功！",
               type: "success"
@@ -363,6 +368,7 @@ export default {
               type: "warning"
             });
           }
+          self.loading = false;
         });
     }
   }
@@ -418,6 +424,9 @@ $font-color = #999
     height 60px
     width 120px
     margin 0 auto
+  .inputCenter
+    .el-input__inner
+      text-align center
 </style>
 
 

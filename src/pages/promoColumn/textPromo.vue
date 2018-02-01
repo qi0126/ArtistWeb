@@ -31,7 +31,7 @@
                 prop="date"
                 label="显示文字">
                   <template slot-scope="scope">
-                    <el-input v-model="scope.row.showText" placeholder="请输入内容" size="small" @blur="savedata(scope)" maxlength="6" ></el-input>
+                    <el-input v-model="scope.row.showText" placeholder="请输入内容" size="small" @blur="savedata(scope)" :maxlength=6></el-input>
                   </template>
                 </el-table-column>
                 <el-table-column
@@ -350,29 +350,32 @@ export default {
     //删除文字推广
     deltext(elem) {
       var self = this;
-      let params = {
-        PRS: {
-          id: elem.row.id
-        }
-      };
-      this.Axios.delete("/promotion/generalizeText/" + elem.row.id, params)
-        .then(data => {
-          if (data.data.code == 0) {
-            this.$message({
-              message: "删除成功！",
-              type: "success"
-            });
-            this.created_fun();
-          } else {
-            this.$message({
-              message: data.data.msg,
-              type: "warning"
-            });
+      console.log(elem.row.showText)
+      this.$confirm(`确认删除‘${elem.row.showText}’此文字推广？`).then(_ => {
+        let params = {
+          PRS: {
+            id: elem.row.id
           }
-        })
-        .catch(err => {
-          this.extCatch(err, this.deltext);
-        });
+        };
+        this.Axios.delete("/promotion/generalizeText/" + elem.row.id, params)
+          .then(data => {
+            if (data.data.code == 0) {
+              this.$message({
+                message: "删除成功！",
+                type: "success"
+              });
+              this.created_fun();
+            } else {
+              this.$message({
+                message: data.data.msg,
+                type: "warning"
+              });
+            }
+          })
+          .catch(err => {
+            this.extCatch(err, this.deltext);
+          });
+      });
     },
     //分页
     //每页多少条记录

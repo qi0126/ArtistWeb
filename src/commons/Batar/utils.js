@@ -1,3 +1,4 @@
+import router from '@/router/index'
 export default {
   fomartParams(obj) {
     let newKeys = Object.keys(obj).sort()
@@ -135,5 +136,18 @@ export default {
       }
     }
     return obj;
+  },
+  goLogin() {
+    router.push('/login');
+  },
+  formatData(standardDate) {
+    let d = new Date(standardDate)
+    let date = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    return date
+  },
+  formatDataTime(standardTime) {
+    let d = new Date(standardTime)
+    let dateTime = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() + ' ' + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds();
+    return dateTime
   }
 }

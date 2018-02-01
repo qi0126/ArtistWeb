@@ -25,6 +25,7 @@ import findContent from '@/pages/promoColumn/findContent'
 import startPromoS from '@/pages/promoColumn/startPromoS'
 import userFeedback from '@/pages/userFeedback/userFeedback'
 import appManage from '@/pages/systemManage/appManage'
+import AppDownload from '@/pages/systemManage/AppDownload'
 import logView from '@/pages/systemManage/logView'
 import sensWordManage from '@/pages/systemManage/sensWordManage'
 import userReg from '@/pages/systemManage/userReg'
@@ -141,6 +142,10 @@ export default new Router({
         {
           path: 'appManage',
           component: appManage
+        },
+        {
+          path: 'AppDownload',
+          component: AppDownload
         },
         {
           path: 'logView',

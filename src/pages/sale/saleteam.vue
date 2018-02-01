@@ -112,7 +112,7 @@
           </div>
         </el-aside>
         
-        <el-container>
+        <el-container v-loading="saleManloading">
           <div class="right_div topnav">
             <span class="redfont"> 销售人员信息</span><br/>
             <div class="right_subdiv">
@@ -159,13 +159,13 @@
                 <div class="teamman_div">
                   <div class="hr"/>
                   <div v-if="teammans.length!=0">
-                    <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+                    <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange" class="checkAll">全选</el-checkbox>
                     <el-checkbox-group v-model="checked_teamman" @change="change_teamman">
-                      <el-checkbox v-for="teamMan in teammans" :label="teamMan.id" :key="teamMan.id" :id="'checkbox_'+teamMan.id" class="checkbox_class" @mouseover.native="teamManOver(teamMan.id)">
-                        {{teamMan.name}}
+                      <el-checkbox v-for="teamMan in teammans" :label="teamMan.id" :key="teamMan.id" :id="'checkbox_'+teamMan.id" class="checkbox_class" @mouseover.native="teamManOver(teamMan.id)" @mouseout.native="teamManOut(teamMan.id)">
+                        <span>{{teamMan.name}}</span>
                         <span class="red_font" v-if="teamMan.teamleader">(负责人)</span>
                         <span>
-                          <el-button type="danger" v-show="teamManOverId == teamMan.id" @click="setPrincipal(teamMan)" size="small">设为负责人</el-button>
+                          <el-button type="danger" v-show="teamManOverId == teamMan.id && !teamMan.teamleader" @click="setPrincipal(teamMan)" size="small" class="setPrincipal">设为负责人</el-button>
                         </span>
                       </el-checkbox>
                     </el-checkbox-group>
@@ -197,6 +197,8 @@ export default {
       salemans_search: "",
       //全部团队信息
       team_alldata: [],
+      //全部团队第一个团队id
+      teamOneId:"",
       //选中团队的ID
       select_index: 0,
       //选中团队的name
@@ -247,7 +249,8 @@ export default {
       addteam_noman: [],
       checked_addteam: [],
       teamManOverId: "",
-      loading: true //网页加载中
+      loading: true, //销售人员名单加载中
+      saleManloading:false,//销售人员详细加载中
     };
   },
   created() {
@@ -283,6 +286,9 @@ export default {
               })(data, null);
             //无限级菜单拼接数据组tree
             self.team_allsubdata = tree;
+            // console.log(self.team_allsubdata)
+            self.teamOneId = self.team_allsubdata[0].id
+            self.selectMenuOne(self.teamOneId)
             self.loading = false;
           }
         })
@@ -306,10 +312,52 @@ export default {
       self.del_team_id = data.id;
       self.del_team_dialog = true;
     },
-    //选择子菜单
+    //默认第一个项
+    selectMenuOne(elemId) {
+      var self = this;
+      //全选默认为空
+      self.checkAll = false;
+      self.Axios.get("/saler/saleTeam/" + elemId).then(data => {
+        if (data.data.code == 0) {
+          self.select_index = elemId;
+          self.select_name = data.data.data.saleTeam.teamName;
+          self.team_backupname = data.data.data.saleTeam.comment;
+          self.teamman_alldata = data.data.data.salers;
+          if (data.data.data.salers != undefined) {
+            //添加团队负责人字段
+            var temp_saler_list = data.data.data.salers;
+            var temp_saler_sumlist = [];
+            for (var i = 0; i < temp_saler_list.length; i++) {
+              if (
+                temp_saler_list[i].id == data.data.data.saleTeam.principalId
+              ) {
+                temp_saler_list[i].teamleader = true;
+              } else {
+                temp_saler_list[i].teamleader = false;
+              }
+              temp_saler_sumlist.push(temp_saler_list[i]);
+              // console.log(temp_saler_list[i]);
+            }
+            self.teammans = temp_saler_sumlist;
+            // console.log(self.teammans);
+          } else {
+            self.teammans = [];
+          }
+          self.checked_teamman = [];
+        } else {
+          this.$message({
+            message: data.data.msg,
+            type: "warning"
+          });
+        }
+      });
+    },
+    //选择销售人员显示详细资料
     selectmenu(node, data) {
       var pId = node.data.id;
       var self = this;
+      // console.log(node.data)
+      self.saleManloading = true
       //全选默认为空
       self.checkAll = false;
       //重新选择，不会保存上一次的选择成员
@@ -340,11 +388,13 @@ export default {
             self.teammans = [];
           }
           self.checked_teamman = [];
+          self.saleManloading = false
         } else {
           this.$message({
             message: data.data.msg,
             type: "warning"
           });
+          self.saleManloading = false
         }
       });
     },
@@ -515,6 +565,11 @@ export default {
       var self = this;
       self.teamManOverId = elem;
     },
+    //鼠标移动移出事件
+    teamManOut(elem) {
+      var self = this;
+      self.teamManOverId = "";
+    },
     //团队备注离焦保存
     team_backup_replace() {
       var self = this;
@@ -618,6 +673,7 @@ export default {
             message: "团队添加成员成功！",
             type: "success"
           });
+          
           self.create_fun();
         } else {
           this.$message({
@@ -709,6 +765,7 @@ $font-color = #999
       border 1px solid #d9d9d9
       border-top 0
       height 630px
+      overflow-y auto
       .el-tree-node__content
         height 100px
     .el-tree-node
@@ -758,6 +815,11 @@ $font-color = #999
         margin-left 0
       .teamman_div
         padding-top 44px
+        .checkAll
+          margin-left 10px
+        .setPrincipal
+          margin-top -10px
+
     .cust_leftdiv
       color #666
 </style>

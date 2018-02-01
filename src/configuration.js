@@ -9,14 +9,15 @@ const appConfig = {
 };
 
 const fileAddress = 'http://192.168.16.20:9006'
+const voiceAddress = process.env.NODE_ENV + '/order'
 Axios.defaults.baseURL = process.env.NODE_ENV;
-// Axios.defaults.baseURL = 'http://192.168.21.114:8082';
 
 Axios.interceptors.request.use(function (config) {
   let baseURL = Axios.defaults.baseURL;
   Batar.formartParams(config, baseURL, appConfig)
   return config;
 })
+
 function extCatch(err, func) {
   let res = err.response
   if (res) {
@@ -38,3 +39,4 @@ Vue.prototype.Axios = Axios;
 Vue.prototype.extCatch = extCatch;
 Vue.prototype.appConfig = appConfig;
 Vue.prototype.fileAddress = fileAddress;
+Vue.prototype.voiceAddress = voiceAddress;

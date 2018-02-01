@@ -11,52 +11,57 @@
     <div class="loginWrapper">
       <div class="accountName">
         <i class="iconfont uaIcon"></i>
-        <input v-model="accountName" type="text" placeholder="请输入用户名">
+        <input v-model.trim="accountName" type="text" placeholder="请输入用户名" @keyup.enter="login">
       </div>
       <div class="password">
         <i class="iconfont pwdIcon"></i>
-        <input v-model="password" type="password" placeholder="请输入密码">
+        <input v-model.trim="password" type="password" placeholder="请输入密码" @keyup.enter="login">
       </div>
-      <button class="btn bt-hover" @click="login">登录</button>
+      <button class="btn bt-hover" @click="login">登 录</button>
     </div>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
-import utils from "@/commons/Batar/utils";
+import utils from '@/commons/Batar/utils'
 
 export default {
   data() {
     return {
-      accountName: "",
-      password: ""
-    };
+      accountName: '',
+      password: ''
+    }
   },
   methods: {
     login() {
       let params = {
         accountName: this.accountName,
         password: this.password,
-        appId: this.appConfig.appId
-      };
-      this.Axios.post('/account/account/login',params).then(res =>{
-        let result = res.data;
-        let code = result.code;
+        appId: this.appConfig.appId,
+        companyId: '1' // 测试数据
+      }
+      this.Axios.post('/account/account/login', params).then(res => {
+        let result = res.data
+        let code = result.code
         if (code == 0) {
-          let data = result.data;
-          let accessToken = data.token.accessToken;
-          let accessTokenExpires = data.token.accessTokenExpires;
+          let tokenObj = result.data.token
+          let accessToken = tokenObj.accessToken
+          let accessTokenExpires = tokenObj.accessTokenExpires
+          let accountId = tokenObj.accountId
 
-          utils.setCookie("accessToken", accessToken,accessTokenExpires);
+          localStorage.setItem('accessToken', accessToken)
+          localStorage.setItem('accountId', accountId)
+          // utils.setCookie('accessToken', accessToken, accessTokenExpires)
+          // utils.setCookie('accountId', accountId, accessTokenExpires)
 
-          this.$router.push({ path: "/index" });
+          this.$router.push({ path: '/index' })
         } else {
-          this.$message.error(result.msg);
+          this.$message.error(result.msg)
         }
       })
     }
   }
-};
+}
 </script>
 
 <style scoped lang="stylus" rel="stylesheet/stylus">
@@ -80,10 +85,10 @@ export default {
         content '\e61a'
         font-size 3rem
       .textOne
-        font-size 1rem
+        font-size 1.2rem
         margin 1rem 0 0.5rem 0
       .textTwo
-        font-size 0.5rem
+        font-size 0.9rem
   .loginWrapper
     text-align center
     color #cccccc
@@ -93,33 +98,34 @@ export default {
     .password
       margin 0 auto
     .accountName, .password
-      background #F2F2F2
+      background #e6e6e6
       width 20%
       height 2.5rem
       border-radius 5px
       display flex
       align-items center
       input
-        background #F2F2F2
+        background #e6e6e6
         flex 1
         height 100%
         padding-left 10px
-        font-size 0.8rem
       i
         flex 0 50px
         width 50px
         border-right 1px solid #CBCBCB
       i.uaIcon:after
         content '\e619'
+        color gray
       i.pwdIcon:after
         content '\e618'
+        color gray
     .btn
       background rgb(230, 14, 50)
       border none
       color #ffffff
       width 20%
-      height 2.5rem
+      height 2.8rem
       border-radius 5px
       margin-top 3rem
-    
+      font-size 1.1rem
 </style>

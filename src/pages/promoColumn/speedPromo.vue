@@ -52,7 +52,6 @@
                       推广名称
                     </span>
                     <el-input v-model="item.name" placeholder="请输入内容" class="speedpromo_txt" size="small" @change="nameChange(item)" :maxlength="6" algin="center"></el-input>
-                    <!-- <el-input v-model="item.name" placeholder="请输入内容" class="speedpromo_txt" size="small" @change="nameChange(item)" algin="center"></el-input> -->
                     <p @click="imgsetDialog(item)">
                       <img v-bind:src="fileAddress+item.imageUrl" class="image">
                     </p>
@@ -79,8 +78,12 @@
                 <el-col :span="6" v-for="item in existData" :key="item.imageUrl" style="padding:10px">
                   <div class="img_bigdiv" @click="imgclick(item)" @mouseover="img_over(item)">
                     <div :class="item.imgTF == 1?'img_div redBorder':'img_div'" v-bind:style="{'background-image':'url('+fileAddress+item.img.imageUrl+')'}">
-                      <div class="delImgDiv" v-show="imgOverId == item.img && item.isSave != 1" @click="delImgId(item)"><i class="iconfont">&#xe656;</i></div>
-                      <div class="selectImgDiv" v-show="item.isSave == 1"><i class="iconfont">&#xe676;</i></div>
+                      <div class="delImgDiv" v-show="imgOverId == item.img && item.isSave != 1" @click="delImgId(item)">
+                        <img src="/static/imgs/del_icon.png" class="ImgPng"/>
+                      </div>
+                      <div class="selectImgDiv" v-show="item.isSave == 1">
+                        <img src="/static/imgs/selected_icon.png" class="ImgPng"/>
+                      </div>
                     </div>
                   </div>
                 </el-col>
@@ -653,18 +656,18 @@ $font-color = #999
         float left
         margin-left 8px
       .speed_div
-        padding 20px
+        padding 16px 30px
         font-size 14px
         span
           color $font-color
         .speedpromo_txt
-          width 50%
-          max-width 160px
+          width 169px
           padding-bottom 10px
           text-align center
           margin-left 10px
         .image
-          width 94%
+          width 240px
+          height 240px
           cursor pointer
     .sub_text
       color #999
@@ -672,6 +675,9 @@ $font-color = #999
     width 200px
     height 200px
     border-radius 3px
+    .ImgPng
+      width 18px
+      height 18px
     img
       width 200px
       height 200px

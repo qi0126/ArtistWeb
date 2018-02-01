@@ -1,5 +1,5 @@
 <template>
-    <div class="conBigDiv"  v-loading="qCodeloading">
+    <div class="conBigDiv">
         <el-breadcrumb separator-class="el-icon-arrow-right" class="topnav">
             <el-breadcrumb-item :to="{ path: '/' }">Artist后台</el-breadcrumb-item>
             <el-breadcrumb-item>系统管理</el-breadcrumb-item>
@@ -15,34 +15,34 @@
                 <div class="codeRegLeft">
                   <div id="qrcode" ref="qrcode">  
                   </div>  
-
                   <br/>
-                  <el-button type="primary" size="small">下载二维码</el-button>
+                  <a :href="imgSrc" target="_blank" download="RegCode.png"><el-button type="primary" size="small">下载二维码</el-button></a>
                 </div>
               </el-col>
               <el-col :span="14">
                 <div class="codeRegRight">
                   <div class="regSubDiv">
                     设置产品信息<br/>
-                    <el-col :span="12">
+                    <el-col :span="12" v-if="proClickedId == ''">
                       <img src="static/imgs/syBg.png" class="imgNoClass" @click="proClick"/>
                       点击图片添加产品信息
                     </el-col>
-                    <el-col :span="12">
+                    <el-col :span="12" v-else>
                       <div class="imgDisClass">
-                        <img src="static/imgs/test.png" class="imgNoClass" @click="proClick"/>
+                        <img :src="fileAddress+proImgUrl" class="imgNoClass" @click="proClick"/>
                         <div class="imgDisText">点击更换产品</div>
                       </div>
                     </el-col>
                   </div>
                   <div class="regSubDiv">
                     客户信息<br/>
-                    <el-input type="text" id="getval" v-model="Qcode" placeholder="请输入客户用户名称" size="small" class="qcodeInput"/><br/>
+                    <el-input type="text" id="getval" v-model="userName" placeholder="请输入客户用户名称" size="small" class="qcodeInput"/><br/>
                     <el-button type="info" @click="qrcodeFun" size="small">生成二维码</el-button>
                   </div>
                 </div>
               </el-col>
             </el-row>
+            {{Qcode}}
             <el-dialog
               title="选择单个产品"
               :visible.sync="proVisible"
@@ -64,18 +64,23 @@
                   class="proSearchClass">
                 </el-input>
                 <br/>
-                <el-row :gutter="20" v-loading="productLoading">
-                      <el-col :span="8" v-for="(item,index) in productData" :key="index">
-                        <div class="selectone_img_div" @click="proClickId(item)">
-                          <img :src="fileAddress+item.headImage" :class="[item.id==proClickedId  ? 'carouSubbottomImg_border' : 'carouSubbottomImg']"/>
-                          {{item.productName}}<br/>
-                          <span class="carou_subbottom_span">{{item.productNumber}}</span>
+                <div class="proImgDiv">
+                  <el-row :gutter="20" v-loading="productLoading">
+                    <el-col :span="8" v-for="(item,index) in productData" :key="index">
+                      <div class="selectone_img_div" @click="proClickId(item)">
+                        <div :class="[item.id==proClickedId  ? 'carouSubbottomImg_border' : 'carouSubbottomImg']">
+                          <img :src="[item.headImage != null?fileAddress+item.headImage:'/static/imgs/syBg.png']" />
+                          <div class="proImgNum">共{{item.imageCount}}张</div>
                         </div>
-                      </el-col>
-                </el-row>
+                        {{item.productName}}<br/>
+                        <span class="carou_subbottom_span">{{item.productNumber}}</span>
+                      </div>
+                    </el-col>
+                  </el-row>
+                  <div class="loading">{{proimgText?"正在加载中...":"产品已经加载完成！"}}</div>
+                </div>
               <span slot="footer" class="dialog-footer">
-                <el-button @click="proVisible = false" size="small">取 消</el-button>
-                <el-button type="primary" @click="proVisible = false" size="small">确 定</el-button>
+                <el-button type="primary" @click="proVisible = false" size="small">关 闭</el-button>
               </span>
             </el-dialog>
           </div>
@@ -102,25 +107,31 @@
     </div>
 </template>
 <script>
+var host = location.host;
+//html设置地址，部置时可能需要修改
+const htmlURl = "http://" + host + "/static/html5/AppDownload.html";
+
 import QrCode from "@/commons/libs/QrCode";
 export default {
   data() {
     return {
-      Qcode: "www.baidu.com", //二维码数据生成渲染
+      Qcode: "", //二维码数据生成渲染
+      userName: "", //用户名称
       productLoading: false,
       qrcode: [], //qrcode对象
       checked: true,
       options: [
+        //产品分类全部数据
         {
           value: "1",
-          label: "访客权限"
+          label: "全部分类"
         },
         {
           value: "2",
-          label: "客户权限"
+          label: "类别1"
         }
       ],
-      value: "1", //用户权限
+      value: "1", //产品分类选中
       productData: [], //产品数据
       productAllData: [], //产品全部数据
       proVisible: false, //产品弹出框
@@ -137,59 +148,128 @@ export default {
       ],
       proSearch: "", //产品搜索
       proClickedId: "", //产品选中Id
-      qCodeloading: false //网页加载中
+      proImgUrl: "", //产品选中显示url
+      imgSrc: "", //二维码下载
+      EventListenerTf: true, //产品分页已加监听，true为未加载监听，false为已加载监听
+      proimgText: true, //产品分页加载显示提示true显示“正在加载中...”，false显示“产品已经加载完成！”
+      tempTxt: [],
+      companyId: "" //公司id
     };
   },
   mounted() {
-    this.qCodeloading = true;
     this.created_fun();
   },
   methods: {
     created_fun() {
       var self = this;
-      this.loading = false;
       self.qrcode = new QRCode(self.$refs.qrcode, {
         width: 200, //设置二维码宽高
         height: 200
       });
-      self.qrcodeFun();
+      this.Axios.get("/common/keyword/company")
+        .then(data => {
+          if (data.data.code == 0) {
+            self.companyId = data.data.data;
+            self.qrcodeFun();
+          }
+        })
+        .catch(err => {
+          self.qrcodeFun();
+          this.extCatch(err, this.create_fun);
+        });
+
+      
     },
     //渲染成二维码
     qrcodeFun() {
       var self = this;
-      
+
+      self.tempTxt = [];
+      self.tempTxt[0] = htmlURl;
+      self.tempTxt[1] = self.proClickedId; //选中产品ID
+      self.tempTxt[2] = self.userName; //客户名称
+      self.tempTxt[3] = self.companyId; //公司id
+      self.Qcode = "";
+      for (var i in self.tempTxt) {
+        if (i == 0) {
+          self.Qcode = self.tempTxt[i];
+        } else {
+          self.Qcode += "?" + self.tempTxt[i];
+        }
+      }
       self.qrcode.makeCode(self.Qcode);
-      self.qCodeloading = false;
+      setTimeout(function() {
+        var Imgdiv = document.getElementsByTagName("img");
+        self.imgSrc = Imgdiv[1].currentSrc;
+      }, 10);
     },
     //点击更换产品弹出框
     proClick() {
       var self = this;
-      self.productLoading = true;
+      self.proVisible = true;
       let params = {
         PRS: {
           page: 1,
           size: 15
         }
       };
-      this.Axios
-        .get("/product/product", params)
+      this.Axios.get("/product/product", params)
         .then(data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data);
             self.productData = data.data.data.list;
             self.productAllData = data.data.data;
-            self.productLoading = false;
-            self.proVisible = true;
+            self.EventListenerTf = false;
           }
         })
         .catch(err => {
           this.extCatch(err, this.proClick);
         });
+
+      if (self.EventListenerTf) {
+        //监听产品
+        setTimeout(function() {
+          var Imgdiv = document.getElementsByClassName("proImgDiv")[0];
+          Imgdiv.addEventListener("scroll", function() {
+            if (this.scrollHeight - this.scrollTop === this.clientHeight) {
+              self.proimgText = true;
+              var nextPage = self.productAllData.page + 1;
+              var pageSize = self.productAllData.size;
+              if ((nextPage - 1) * pageSize < self.productAllData.total) {
+                let params = {
+                  PRS: {
+                    page: nextPage,
+                    size: pageSize
+                  }
+                };
+                self.Axios.get("/product/product", params).then(data => {
+                  if (data.data.code == 0) {
+                    var tempData = self.productData.concat(data.data.data.list);
+                    self.productData = tempData;
+                    self.productAllData = data.data.data;
+                  } else {
+                    self.$message({
+                      message: data.data.msg,
+                      type: "warning"
+                    });
+                  }
+                });
+              } else {
+                self.nextPage = 0;
+                self.proimgText = false;
+                return false;
+              }
+            }
+            self.EventListenerTf = false;
+          });
+        }, 100);
+      }
     },
     //选择产品Id
     proClickId(elem) {
       var self = this;
+      // console.log(elem)
       self.proClickedId = elem.id;
+      self.proImgUrl = elem.headImage;
     }
   }
 };
@@ -218,6 +298,56 @@ $font-color = #999
     box-shadow 2px 2px 8px #d8d8d8
     padding 20px
     margin-top 15px
+    .proImgDiv
+      max-height 430px
+      overflow-y auto
+      overflow-x hidden
+      .selectone_img_div
+        font-size 16px
+        margin-top 15px
+        cursor pointer
+        .carou_subbottom_span
+          color $font-color
+          font-size 12px
+        .carouSubbottomImg_border
+          width 98px
+          height 74px
+          float left
+          margin-right 10px
+          cursor pointer
+          position relative
+          border 1px solid red
+          border-radius 5px
+          img
+            width 98px
+            height 74px
+            border-radius 5px
+        .carouSubbottomImg
+          width 100px
+          height 76px
+          float left
+          margin-right 10px
+          cursor pointer
+          position relative
+          border-radius 5px
+          img
+            width 98px
+            height 74px
+            border-radius 5px
+        .proImgNum
+          position absolute
+          top 61px
+          right 0
+          margin-top -11px
+          background-color #999
+          opacity 0.8
+          color #ffffff
+          font-size 12px
+          padding 0 5px
+          border-bottom-right-radius 5px
+      .loading
+        text-align center
+        padding 20px
     .codeReg
       padding 20px 0 30px 30px
       line-height 35px
@@ -244,6 +374,7 @@ $font-color = #999
             margin-right 20px
             float left
             cursor pointer
+            border-radius 5px
           .imgDisClass
             width 120px
             height 90px
@@ -260,27 +391,11 @@ $font-color = #999
               font-size 12px
               cursor pointer
               line-height 25px
+              border-bottom-left-radius 5px
+              border-bottom-right-radius 5px
       .proSearchClass
         width 240px
     .mobileReg
       padding 20px 0 30px 30px
       line-height 35px
-    .selectone_img_div
-      font-size 16px
-      margin-top 15px
-      cursor pointer
-      .carou_subbottom_span
-        color $font-color
-        font-size 12px
-      .carouSubbottomImg_border
-        width 98px
-        height 73px
-        float left
-        margin-right 5px
-        border 1px solid red
-      .carouSubbottomImg
-        width 100px
-        height 75px
-        float left
-        margin-right 5px
 </style>

@@ -381,15 +381,6 @@ export default {
       classifySelectId: 0, //产品分类选中的ID
       categoryNameData: {}, //所属类别字段
       categoryIdData: {}, //所属类别ID字段
-
-      //鼠标拖动
-      list3: [
-        { id: "id1", it: { name: "bbbb" } },
-        { id: "id2", it: { name: "2222" } },
-        { id: "id3", it: { name: "3333" } },
-        { id: "id4", it: { name: "4444" } }
-      ],
-      out_menu_data: [] //鼠标拖动后输出结果
     };
   },
   created() {

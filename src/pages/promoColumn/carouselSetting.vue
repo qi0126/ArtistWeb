@@ -9,14 +9,14 @@
             提示：建议使用JPG格式，2M以下图片，尺寸像素1440×604。点击顺序拖动图片可变换轮播图片顺序
         </div>
         <div v-loading.fullscreen.lock="fullscreenLoading"></div>
-        <el-button plain size="small" :disabled="addCarouBtnTF" @click="addCarouBtn">增加轮播</el-button>
+        <el-button size="small" :disabled="addCarouBtnTF" @click="addCarouBtn" type="danger">增加轮播</el-button>
         <div>
             <el-row>
                 <el-col :span="24">
                     <div class="add_carousel_div" v-show="addCarouselTF">
                         <el-col :span="2">
                             <div class="title_name">
-                                标        题：
+                                轮播标题：
                             </div>
                         </el-col>
                         <el-col :span="22">
@@ -65,7 +65,7 @@
                             </div>
                         </el-col>
                         <el-col :span="22">
-                            <el-input v-model="item.title" placeholder="请输入内容" class="input_350" size="small" @blur="changeItem(item)"></el-input>
+                            <el-input v-model="item.title" placeholder="请输入内容" class="input_350" size="small" @blur="changeItemData(item)"></el-input>
                             <span class="carou_delbtn" @click="delcarou(item)"><i class="iconfont">&#xe656;</i></span>
                         </el-col>
                         <el-col :span="2">
@@ -85,7 +85,7 @@
                                 end-placeholder="结束日期"
                                 :picker-options="pickerOptions2"
                                 size="small"
-                                @change="changeItem(item)">
+                                @change="changeItemData(item)">
                                 </el-date-picker>
                             </div>
                         </el-col>
@@ -209,18 +209,21 @@
         <el-dialog
         title="选择推广类别"
         :visible.sync="selectpromo_dialog"
-        width="950px">
-            <div class="item" v-for="kind in allPromoData" :key="kind.categoryName">
+        width="850px">
+            <el-checkbox-group v-model="checkList">
+              <div class="item" v-for="item in promoAllData" :key="item.id">
                 <div class="parent">
-                <el-radio v-model="kind_checked" :label="kind.id">{{kind.categoryName}}</el-radio>
-                </div>
-                <div class="child" v-show="kind.categoryList.length != 0">
-                【 <el-radio v-model="kind_checked" class="childText" :label="child.id" v-for="child in kind.categoryList" :key="child.id">{{ child.categoryName }}</el-radio> 】
-                </div>
-            </div>
+                  <el-checkbox :label="item.id" @change="changeItem(item)">{{item.categoryName}}</el-checkbox>
+                </div> 
+                <div class="child" v-show="item.categoryList.length > 0">
+                    【 <el-checkbox class="childText" :label="child.id" v-for="child in item.categoryList" :key="child.id" @change="changeChild(child,item)">{{ child.categoryName }}</el-checkbox> 】
+                </div> 
+              </div>
+            </el-checkbox-group>
+            <br/><br/>
             <span slot="footer" class="dialog-footer">
                 <el-button @click="selectpromo_dialog = false" size="small">取 消</el-button>
-                <el-button type="primary" @click="selectPromoId()" size="small">确 定</el-button>
+                <el-button type="primary" @click="selectPromoId" size="small">确 定</el-button>
             </span>
         </el-dialog>
 
@@ -230,9 +233,9 @@
         :visible.sync="selectone_dialog"
         width="950px">
             <div>
-              <el-select v-model="value" placeholder="全部类别" size="small">
+              <el-select v-model="proValue" placeholder="全部类别" size="small">
                 <el-option
-                  v-for="item in options"
+                  v-for="item in proOptions"
                   :key="item.value"
                   :label="item.label"
                   :value="item.value">
@@ -262,28 +265,6 @@
             <span slot="footer" class="dialog-footer">
                 <el-button @click="proCancelFun" size="small">取 消</el-button>
                 <el-button type="primary" @click="proClickFun" size="small">确 定</el-button>
-            </span>
-        </el-dialog>
-        <!-- 删除轮播div -->
-        <el-dialog
-        title="提示"
-        :visible.sync="delcarousel_dialog"
-        width="30%">
-            <span>确认要删除"<span class="red_font">{{delCarouselData.title}}</span>"轮播？</span>
-            <span slot="footer" class="dialog-footer">
-                <el-button @click="delcarousel_dialog = false">取 消</el-button>
-                <el-button type="primary" @click="delThisCarousel">确 定</el-button>
-            </span>
-        </el-dialog>
-        <!-- 删除轮播中图片 -->
-        <el-dialog
-        title="提示"
-        :visible.sync="delCarouImg"
-        width="30%">
-            <span>确认要删除轮播选中的图片？</span>
-            <span slot="footer" class="dialog-footer">
-                <el-button @click="delCarouImg = false">取 消</el-button>
-                <el-button type="primary" @click="delCarouImgFun">确 定</el-button>
             </span>
         </el-dialog>
         
@@ -361,21 +342,30 @@ export default {
       value1: "1",
       value2: "2",
       value3: "3",
+      proOptions: [
+        //产品分类全部数据
+        {
+          value: "1",
+          label: "全部分类"
+        },
+        {
+          value: "2",
+          label: "类别1"
+        }
+      ],
+      proValue: "1", //产品分类选中
 
       promoSourseData: [], //推广类别原始数据
-      allPromoData: [], // 推广类别处理后数据
+      promoAllData: [], // 推广类别处理后数据
       promoNumber: 0, //分页中推广类别共有多少轮播
       pageSize: 3, //分页中每一页有多少个轮播
       pageNo: 1, //分页中默认为第一页
-      kind_checked: "", //推广类别选中项
       selectpromo_dialog: false, //选择类别的弹出框
       selectImgData: [], //选择图片轮片的数据（单品和推广类别要用）
       selectone_dialog: false, //选择单品的弹出框
       selecone_search: "", //选择单品的文字搜索框
       delCarouselData: {}, //选择要删除轮播的数据
-      delcarousel_dialog: false, //删除轮播确认弹出框
       selectCarouselData: {}, //选择轮播属性
-      delCarouImg: false, //删除轮播中的图片弹出框
       delSelectImgData: {}, //删除轮播中的图片选中数据
       url_input: "", //url跳转网址
       uploadedImageList: [], //已上传图片列表
@@ -385,11 +375,11 @@ export default {
       productAllData: [], //产品接口的整个数据
       productLoading: false, //选择单品加载数据
       proClickedId: "", //已选择单品的ID
-      // urlSaveData: [] //轮播图片地址数据保存
       scroll: "", //滚动条高度
       proimgText: true, //产品分页加载显示提示true显示“正在加载中...”，false显示“产品已经加载完成！”
       EventListenerTf: true, //产品分页已加监听，true为未加载监听，false为已加载监听
-      loading: true //页面加载中
+      loading: true, //页面加载中
+      checkList: [] //新增推广类别确认数组
     };
   },
   created() {
@@ -418,6 +408,14 @@ export default {
         .then(data => {
           if (data.data.code == 0) {
             self.carouselData = data.data.data;
+            // console.log(self.carouselData.list)
+            var imgData
+            for(var i in self.carouselData.list){
+              imgData = self.carouselData.list[i].carouselImages;
+              imgData.sort(function(a,b){
+                return a.cIndex > b.cIndex
+              })
+            }
             self.proDisplayName();
             self.promoNumber = self.carouselData.total;
             self.loading = false;
@@ -620,8 +618,10 @@ export default {
     //删除轮播确认弹出框
     delcarou(elem) {
       var self = this;
-      self.delCarouselData = elem;
-      self.delcarousel_dialog = true;
+      this.$confirm(`确认删除名叫‘${elem.title}’这个轮播？`).then(_ => {
+        self.delCarouselData = elem
+        self.delThisCarousel()
+      });
     },
     //删除此轮播事件
     delThisCarousel() {
@@ -645,7 +645,6 @@ export default {
           });
         }
         self.created_fun();
-        self.delcarousel_dialog = false;
       });
     },
     //轮播中图片上传
@@ -725,8 +724,11 @@ export default {
     //轮播中删除图片弹出框
     delImgDa(elem) {
       var self = this;
-      self.delSelectImgData = elem;
-      self.delCarouImg = true;
+      this.$confirm("确认删除这张轮播图片？").then(_ => {
+        self.delSelectImgData = elem
+        self.delCarouImgFun()
+      });
+
     },
     //轮播中删除图片事件
     delCarouImgFun() {
@@ -757,7 +759,6 @@ export default {
       });
 
       self.fullscreenLoading = false;
-      self.delCarouImg = false;
     },
     //选择已上传图片文件弹出框
     uploaded_file() {
@@ -791,12 +792,22 @@ export default {
     selectcarou_btn(elem) {
       var self = this;
       self.selectImgData = elem;
-      self.kind_checked = parseInt(elem.typeContent);
       this.Axios.get("/promotion/category")
         .then(data => {
           if (data.data.code == 0) {
-            self.allPromoData = data.data.data;
-            // console.log(self.allPromoData);
+            self.promoAllData = data.data.data;
+            var typeNumber = parseInt(elem.typeContent);
+            self.checkList = [typeNumber];
+            for (var i in self.promoAllData) {
+              if (typeNumber == self.promoAllData[i].id) {
+                self.promoAllData[i].layer = 1; //如果是1级大类
+                for (var j in self.promoAllData[i].categoryList) {
+                  self.checkList.push(self.promoAllData[i].categoryList[j].id);
+                }
+              } else {
+                self.promoAllData[i].layer = 2; //默认是2级小类
+              }
+            }
           }
         })
         .catch(err => {
@@ -807,10 +818,23 @@ export default {
     //选择推广类别的ID
     selectPromoId(elem) {
       var self = this;
+
+      //选择一级的情况下，过滤掉二级分类的id
+      for (var i in self.promoAllData) {
+        if (self.promoAllData[i].layer == 1) {
+          for (var j in self.promoAllData[i].categoryList) {
+            self.removeByValue(
+              self.checkList,
+              self.promoAllData[i].categoryList[j].id
+            );
+          }
+        }
+      }
+      // console.log(self.checkList)
       let params = {
         id: self.selectImgData.id,
         type: 2,
-        typeContent: self.kind_checked
+        typeContent: self.checkList[0]
       };
       this.Axios.put("/promotion/carousel/carouselImage", params)
         .then(data => {
@@ -831,7 +855,7 @@ export default {
         .catch(err => {
           this.extCatch(err, this.selectPromoId);
         });
-      // self.selectpromo_dialog = false;
+      self.selectpromo_dialog = false;
     },
     //选择单品弹出框
     selectonepro(elem) {
@@ -1078,7 +1102,7 @@ export default {
       self.selectone_dialog = false;
     },
     //修改名字和修改时间的事件
-    changeItem(elem) {
+    changeItemData(elem) {
       // console.log(elem);
       let params = {
         id: elem.id,
@@ -1101,7 +1125,7 @@ export default {
           }
         })
         .catch(err => {
-          this.extCatch(err, this.changeItem);
+          this.extCatch(err, this.changeItemData);
         });
     },
     //改变分页每页个数
@@ -1118,9 +1142,129 @@ export default {
     },
     //图片拖动输出数据
     changeImg(elem) {
-      console.log(elem);
+      var templist = [];
+      var tempObj = {};
+      for (var i in elem) {
+        tempObj = {};
+        tempObj.id = elem[i].id;
+        tempObj.index = parseInt(i) + 1;
+        templist.push(tempObj);
+      }
+      let params = {
+          vos: templist
+      };
+      this.Axios.put("/promotion/carousel/index", params)
+        .then(data => {
+          if (data.data.code == 0) {
+            console.log(data.data.data);
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
+          } else {
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
+            });
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.add_textpromo);
+        });
     },
 
+    //新增推广展示改变父类的多选框选择1级大类
+    changeItem(elem) {
+      var self = this;
+      for (var p in elem.categoryList) {
+        elem.categoryList[p].layer = 1;
+      }
+      elem.layer = 1;
+
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        self.checkList = [];
+        self.checkList.push(elem.id);
+        for (var i in elem.categoryList) {
+          self.checkList.push(elem.categoryList[i].id);
+        }
+      } else {
+        //选中数组已经没有了数组
+        for (var i in elem.categoryList) {
+          for (var j in self.checkList) {
+            if (self.checkList[j] == elem.categoryList[i].id) {
+              self.removeByValue(self.checkList, self.checkList[j]);
+            }
+          }
+        }
+      }
+      self.checkList = self.removeListRepeat(self.checkList); //数组去重
+    },
+    //推广类别选择2级小类
+    changeChild(elem, item) {
+      var self = this;
+      // console.log(elem)
+      // console.log(item)
+      self.checkList = [];
+      if ((elem.layer = 1)) {
+        for (var p in item.categoryList) {
+          item.categoryList[p].layer = 2;
+          self.removeByValue(self.checkList, item.categoryList[p].id);
+        }
+        self.checkList.push(elem.id);
+      }
+      item.layer = 2;
+
+      let idIndex = self.checkList.indexOf(elem.id);
+      if (idIndex >= 0) {
+        //选中数组已经有了数组
+        for (var i in self.promoAllData) {
+          if (self.promoAllData[i].categoryList.length != 0) {
+            for (var j in self.promoAllData[i].categoryList) {
+              if (self.promoAllData[i].categoryList[j].id == elem.id) {
+                for (
+                  var k = 0;
+                  k < self.promoAllData[i].categoryList.length;
+                  k++
+                ) {
+                  self.removeByValue(
+                    self.checkList,
+                    self.promoAllData[i].categoryList[k].id
+                  );
+                }
+                self.removeByValue(self.checkList, self.promoAllData[i].id);
+                self.checkList.push(elem.id);
+              }
+            }
+          }
+        }
+      } else {
+        //当多选数组没有此数组编号
+        // console.log(self.checkList);
+      }
+    },
+    //删除子元素
+    removeByValue(arr, val) {
+      for (var i in arr) {
+        if (arr[i] == val) {
+          arr.splice(i, 1);
+          break;
+        }
+      }
+    },
+    //新增推广展示去重
+    removeListRepeat(arr) {
+      var res = [];
+      var json = {};
+      for (var i in arr) {
+        if (!json[arr[i]]) {
+          res.push(arr[i]);
+          json[arr[i]] = 1;
+        }
+      }
+      return res;
+    }
   }
 };
 </script>
@@ -1343,6 +1487,8 @@ $font-color = #999
     margin-bottom 30px
     display flex
     align-items top
+    color #000
+    font-size 14px
     .child .el-radio
       color #999
     .text

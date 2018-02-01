@@ -8,7 +8,7 @@
       <div class="headerRight">
         <img src="static/imgs/test2.png" class="noLoginIcon" alt="暂无图片">
         <span class="accoutName">许文祥</span>
-        <i class="iconfont outLoginIcon bt-hover"></i>
+        <i class="iconfont outLoginIcon bt-hover" @click="loginOut"></i>
       </div>
     </div>
     <div class="buttomWrapper">
@@ -20,22 +20,22 @@
               :unique-opened="true"
               @select="handleSelect"
               :default-active="activeIndex">
-              <div v-for="(item,index) in menus" :key="index">
-                <template v-if="item.childrens.length > 0">
+              <div v-for="(item,index) in menus.menu" :key="index">
+                <template v-if="item.childs.length > 0">
                   <el-submenu :index="index+''">
                     <template slot="title">
                       <i class="iconfont" :class="item.icon"></i>
-                      <span>{{item.title}}</span>
+                      <span>{{item.menuName}}</span>
                     </template>
-                    <el-menu-item v-for="child in item.childrens" :index="child.route" :key="child.route">
-                      {{child.title}}
+                    <el-menu-item v-for="child in item.childs" :index="child.menuUrl" :key="child.menuUrl">
+                      {{child.menuName}}
                     </el-menu-item>
                   </el-submenu>
                 </template>
                 <template v-else>
-                  <el-menu-item :index="item.route"> 
+                  <el-menu-item :index="item.menuUrl"> 
                     <i class="iconfont" :class="item.icon"></i>
-                    <span slot="title">{{item.title}}</span>
+                    <span slot="title">{{item.menuName}}</span>
                   </el-menu-item>
                 </template>
               </div>
@@ -52,126 +52,35 @@
 </template>
 
 <script type="text/ecmascript-6">
+import utils from '@/commons/Batar/utils'
 export default {
   data() {
     return {
       activeIndex: null,
-      menus: [
-        {
-          title: '产品管理',
-          icon: 'bt-proManagerIcon',
-          route: '',
-          childrens: [
-            { title: '产品库', route: '/index/production' },
-            { title: '新增产品', route: '/index/addProduction' },
-            { title: '类别属性', route: '/index/kindProperty' }
-          ]
-        },
-        {
-          title: '推广管理',
-          icon: 'bt-genManagerIcon',
-          route: '/index/promotion',
-          childrens: []
-        },
-        {
-          title: '推广栏目',
-          route: '',
-          icon: 'bt-genColumnIcon',
-          childrens: [
-            { title: '快捷推广', route: '/index/speedPromo' },
-            { title: '推广展示', route: '/index/promoDisplay' },
-            { title: '轮播设置', route: '/index/carouselSetting' },
-            { title: '文字推广', route: '/index/textPromo' },
-            { title: '启动页推广', route: '/index/startPromoS' },
-            { title: '发现内容', route: '/index/findContent' }
-          ]
-        },
-        {
-          title: '首页定制',
-          icon: 'bt-homePageCmIcon',
-          route: '',
-          childrens: [
-            { title: '自定义首页模板', route: '/index/customHomepage' },
-            { title: '首页模板选择', route: '/index/homepageTemplet' }
-          ]
-        },
-        {
-          title: '销售管理',
-          icon: 'bt-sellManagerIcon',
-          route: '',
-          childrens: [
-            { title: '销售人员管理', route: '/index/sale' },
-            { title: '销售团队管理', route: '/index/saleteam' }
-          ]
-        },
-        {
-          title: '客户管理',
-          icon: 'bt-custManagerIcon',
-          route: '/index/customerManager',
-          childrens: []
-        },
-        {
-          title: '订单管理',
-          icon: 'bt-orderManagerIcon',
-          route: '',
-          childrens: [
-            { title: '销售订单', route: '/index/sellOrder' },
-            { title: '协助订单', route: '/index/assistOrder' },
-            { title: '历史订单', route: '/index/historyOrder' }
-          ]
-        },
-        {
-          title: '系统管理',
-          icon: 'bt-systemManagerIcon',
-          route: '',
-          childrens: [
-            { title: 'APP升级管理', route: '/index/appManage' },
-            { title: '日志查看', route: '/index/logView' },
-            { title: '用户注册', route: '/index/userReg' },
-            { title: '敏感词管理', route: '/index/sensWordManage' }
-          ]
-        },
-        {
-          title: '数据统计',
-          icon: 'bt-dataStatisticsIcon',
-          route: '',
-          childrens: [
-            { title: '产品维度', route: '/index/productDiemn' },
-            { title: '客户维度', route: '/index/customerDiemn' },
-            { title: '汇总报表', route: '/index/gatherCount' }
-          ]
-        },
-        {
-          title: '用户反馈',
-          icon: 'bt-userFeedBackIcon',
-          route: '/index/userFeedback',
-          childrens: []
-        },
-        {
-          title: '用户管理',
-          icon: 'bt-userManagerIcon',
-          route: '',
-          childrens: [
-            { title: '用户管理', route: '/index/userManage' },
-            { title: '访客审核', route: '/index/visitorVerify' },
-            { title: '角色管理', route: '/index/roleManage' }
-          ]
-        },
-        {
-          title: '公司管理',
-          icon: 'bt-companyManagerIcon',
-          route: '',
-          childrens: [
-            { title: '联系我们', route: '/index/contactWe' },
-            { title: '关于我们', route: '/index/aboutWe' },
-            { title: '职位设置', route: '/index/positionSetting' },
-            { title: '公司设置', route: '/index/companySetting' }
-          ]
-        }
-      ]
+      menus: {}
     }
   },
   methods: {
+    loginOut() {
+      this.$confirm('确认退出登录？', '提示', {
+        type: 'warning'
+      })
+        .then(() => {
+          this.Axios.get('/account/account/logout')
+            .then(res => {
+              let result = res.data
+              if(result.code == 0){
+                utils.goLogin()
+              }else{
+                this.$message.error(result.msg)
+              }
+            })
+            .catch(err => {
+              this.extCatch(err, this.loginOut)
+            })
+        })
+        .catch(() => {})
+    },
     handleSelect(key, keyPath) {
       sessionStorage.setItem('currentPath', key)
     },
@@ -180,12 +89,27 @@ export default {
       if (currentPath && currentPath != '') {
         this.activeIndex = currentPath
       } else {
-        this.activeIndex = '/index/production'
+        this.activeIndex = this.menus.default.menuUrl
       }
+    },
+    getMenus(){
+      this.Axios.get('/account/menu').then(res=>{
+        let result = res.data
+        if(result.code == 0){
+          this.menus = result.data
+          this.$nextTick(()=>{
+            this.initPath()
+          })
+        }else{
+          this.$message.error(result.msg)
+        }
+      }).catch(err=>{
+        this.extCatch(err,this.getMenus)
+      })
     }
   },
   created() {
-    this.initPath()
+    this.getMenus()
   }
 }
 </script>

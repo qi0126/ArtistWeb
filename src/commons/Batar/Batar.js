@@ -1,6 +1,5 @@
 import Base64 from '@/commons/libs/Base64';
 import MD5 from "@/commons/libs/MD5";
-import router from '@/router/index';
 import utils from '@/commons/Batar/utils';
 export default {
   refToken($this, func, refTokenRouter) {
@@ -16,14 +15,16 @@ export default {
         utils.setCookie("refreshToken", res.data.data.refreshToken, res.data.data.refreshTokenExpires);
         func();
       }).catch(err => {
-        router.push('/login');
+        utils.goLogin()
       })
     } else {
-      router.push('/login');
+      utils.goLogin()
     }
   },
   formartParams(config, baseURL, appConfig) {
-    let accessToken = utils.getCookie('accessToken');
+    // let accessToken = utils.getCookie('accessToken');
+    let accessToken = localStorage.getItem('accessToken');
+    
     let method = config.method.toUpperCase();
     let url = config.url;
     let signKey = method + url.replace(baseURL, "/");

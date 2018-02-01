@@ -14,11 +14,12 @@
           size="small"
           placeholder="输入产品编号、名称搜索"
           prefix-icon="el-icon-search"
-          v-model="searchKey">
+          @keyup.enter.native="searchRequest"
+          v-model.trim="searchParams.name">
         </el-input>
 
         <span class="title">产品类别</span>
-        <el-select v-model="selKind" size="small" placeholder="请选择" class="searchKind">
+        <el-select v-model="searchParams.productClassId" size="small" placeholder="请选择" class="searchKind" @change="searchRequest">
           <el-option
             v-for="item in kinds"
             :key="item.id"
@@ -28,7 +29,7 @@
         </el-select>
 
         <span class="title">产品状态</span>
-        <el-select v-model="selState" size="small" placeholder="请选择" class="searchState">
+        <el-select v-model="searchParams.productStatus" size="small" placeholder="请选择" class="searchState" @change="searchRequest">
           <el-option
             v-for="item in states"
             :key="item.value"
@@ -40,21 +41,23 @@
         <span class="title">时间筛选</span>
         <el-date-picker
           class="myDateTime"
-          v-model="startTime"
+          v-model="searchParams._start_createTime"
           type="datetime"
           placeholder="开始时间"
           align="right"
           size="small"
+          @change="searchRequest"
           :picker-options="$store.state.pickerOptions">
         </el-date-picker>
         <span class="spe">至</span>
         <el-date-picker
           class="myDateTime"
-          v-model="endTime"
+          v-model="searchParams._end_createTime"
           type="datetime"
           placeholder="结束时间"
           align="right"
           size="small"
+          @change="searchRequest"
           :picker-options="$store.state.pickerOptions">
         </el-date-picker>
 
@@ -66,7 +69,7 @@
         <el-button size="small" plain @click="setWaterMaskDialog = true" icon="el-icon-picture-outline">设置图片水印</el-button>
         <el-button size="small" plain @click="newProSettingDialog = true" icon="el-icon-date">设置新品时间</el-button>
         <!-- <el-button size="small" plain @click="jsDialog = true" icon="el-icon-sold-out">产品接收</el-button> -->
-        <el-button size="small" plain icon="el-icon-refresh">更新产品</el-button>
+        <el-button size="small" plain icon="el-icon-refresh" @click="refreshProduct">更新产品</el-button>
         <el-button type="danger" size="small" icon="el-icon-delete" :disabled="batchDelDisabled" @click="batchDel">批量删除</el-button>
       </div>
     </div>
@@ -192,8 +195,7 @@
         <div class="settingWaterMark">
           <div class="leftWrapper">
             <div class="top">
-              <i class="iconfont checkBoxIcon bt-hover" :class="{'checkBoxIconSel': checkBoxState}" @click="checkBoxState = !checkBoxState"></i>
-              <span class="bt-hover" @click="checkBoxState = !checkBoxState">开启水印</span>
+              <el-checkbox v-model="checkBoxState">开启水印</el-checkbox>
             </div>
             <div class="bottom">
               <img src="static/imgs/syBg.png">
@@ -219,7 +221,7 @@
             <div class="bottom">
               <el-button type="primary" size="small" plain>预览</el-button>
               <el-button type="primary" size="small" plain>取消</el-button>
-              <el-button type="primary" size="small">确定</el-button>
+              <el-button type="primary" size="small" @click="confirmSy">确定</el-button>
             </div>
           </div>
         </div>
@@ -364,6 +366,7 @@ export default {
     return {
       proDetailLayer: false,
       pageSizes: [10, 20, 50],
+      currentPage: 1,
       pageSize: 10,
       allPros: {},
       loading: true,
@@ -405,30 +408,24 @@ export default {
       upAndDown: 1, // 1：上架 2：下架
       upAndDownDialog: false,
       kinds: [],
-      selKind: 'all',
       states: [
         {
-          value: 'all',
+          value: null,
           label: '全部状态'
         },
         {
-          value: '未上架',
-          label: '未上架'
-        },
-        {
-          value: '已上架',
+          value: 1,
           label: '已上架'
         },
         {
-          value: '删除',
-          label: '删除'
-        }
+          value: 2,
+          label: '已下架'
+        },
+        // {
+        //   value: 3,
+        //   label: '删除'
+        // }
       ],
-      selState: 'all',
-      searchKey: '',
-      currentPage: 1,
-      startTime: '',
-      endTime: '',
       batchDelDisabled: true, // 批量删除禁用状态
       pagerStatus: false,
       allPromotions: [], // 所有的推广类别
@@ -436,16 +433,50 @@ export default {
       selRowIds: [], // 被选择产品的id集合
       selProId: null, // 编辑产品的id
       selImg: null,
-      proDetails: {} // 点击获取图片获取详情
+      proDetails: {}, // 点击获取图片获取详情
+      searchParams: {
+        name: null,
+        productClassId: null,
+        productStatus: null,
+        _start_createTime: null,
+        _end_createTime: null
+      }
     }
   },
   methods: {
+    confirmSy(){
+
+    },
+    refreshProduct() {
+      const loading = this.$loading({
+        lock: true,
+        text: '正在刷新产品库，请耐心等待...',
+        spinner: 'el-icon-loading'
+      })
+      this.Axios.post('/product/product/import')
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            loading.close()
+            this.$message.success('产品库刷新成功')
+            this.getProByParams()
+          } else {
+            loading.close()
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.refreshProduct)
+        })
+    },
+    searchRequest() {
+      this.getProByParams()
+    },
     uploadImgChange(e) {
       let formData = new FormData()
       formData.append('file', e.target.files[0])
       formData.append('type', 1)
-      this.Axios
-        .post(`${this.fileAddress}/image/upload`, formData)
+      this.Axios.post(`${this.fileAddress}/image/upload`, formData)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -469,8 +500,7 @@ export default {
       this.updateImgInfo()
     },
     updateImgInfo() {
-      this.Axios
-        .put(`/product/product/${this.proDetails.id}`, this.proDetails)
+      this.Axios.put(`/product/product/${this.proDetails.id}`, this.proDetails)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -495,8 +525,7 @@ export default {
     delSinglePro(row) {
       this.$confirm('确定删除', '提示', { type: 'warning' })
         .then(res => {
-          this.Axios
-            .delete(`/product/product/${row.id}`)
+          this.Axios.delete(`/product/product/${row.id}`)
             .then(res => {
               let result = res.data
               if (result.code == 0) {
@@ -511,26 +540,6 @@ export default {
             })
         })
         .catch(err => {})
-      console.log(row)
-    },
-    getAllPros(params = {}) {
-      this.loading = true
-      this.Axios
-        .get('/product/product', params)
-        .then(res => {
-          let result = res.data
-          if (result.code == 0) {
-            this.allPros = result.data
-            this.loading = false
-            if (this.allPros.list.length > 0) this.pagerStatus = true
-          } else {
-            this.$message.error(result.msg)
-          }
-        })
-        .catch(err => {
-          this.loading = false
-          this.extCatch(err, this.getAllPros)
-        })
     },
     tsConfirm() {},
     getdata(evt) {
@@ -547,8 +556,16 @@ export default {
       })
     },
     syFile(e) {
-      utils.encodeBase64(e).then(data => {
-        this.syImg = data
+      utils.commonUpload(this, e, 2, data => {
+        let params = {
+          waterImage: data[0].url,
+          diaphaneity: 0.5,
+          x: 0,
+          y: 0
+        }
+        this.Axios.post('/image/config',params).then(res=>{
+          console.log(res)
+        })
       })
     },
     batchDel() {
@@ -566,8 +583,7 @@ export default {
           ids: this.selRowIds
         }
       }
-      this.Axios
-        .delete('/product/product/batch', params)
+      this.Axios.delete('/product/product/batch', params)
         .then(res => {
           this.$message.success('批量删除成功')
           this.getProByParams()
@@ -582,8 +598,7 @@ export default {
           categoryIds: this.categoryIds,
           productIds: this.selRowIds
         }
-        this.Axios
-          .post('/promotion/category/product', params)
+        this.Axios.post('/promotion/category/product', params)
           .then(res => {
             let result = res.data
             if (result.code == 0) {
@@ -605,8 +620,7 @@ export default {
       let params = {
         newTime: this.newProSetting
       }
-      this.Axios
-        .post('/product/product/newTime', params)
+      this.Axios.post('/product/product/newTime', params)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -629,8 +643,7 @@ export default {
         ids: null
       }
       id ? (params.ids = [id]) : (params.ids = this.selRowIds)
-      this.Axios
-        .post('/product/product/putawayUp', params)
+      this.Axios.post('/product/product/putawayUp', params)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -650,8 +663,7 @@ export default {
         ids: null
       }
       id ? (params.ids = [id]) : (params.ids = this.selRowIds)
-      this.Axios
-        .post('/product/product/putawayDown', params)
+      this.Axios.post('/product/product/putawayDown', params)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -688,8 +700,7 @@ export default {
     },
     showMore(id) {
       this.preViewDialog = true
-      this.Axios
-        .get(`/product/product/${id}`)
+      this.Axios.get(`/product/product/${id}`)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -702,11 +713,45 @@ export default {
           this.extCatch(err, this.showMore)
         })
     },
+    getAllPros(params = {}) {
+      this.loading = true
+      this.Axios.get('/product/product', params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.allPros = result.data
+            this.loading = false
+            if (this.allPros.list.length > 0) this.pagerStatus = true
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.loading = false
+          this.extCatch(err, this.getAllPros)
+        })
+    },
     getProByParams() {
       let params = {
         PRS: {
           page: this.currentPage,
           size: this.pageSize
+        }
+      }
+      let searchParams = utils.deepClone(this.searchParams)
+      for (let key in searchParams) {
+        if (searchParams[key] != null && searchParams[key] != '') {
+          if (key == '_start_createTime') {
+            searchParams['_start_createTime'] = utils.formatDataTime(
+              searchParams[key]
+            )
+          } else if (key == '_end_createTime') {
+            searchParams['_end_createTime'] = utils.formatDataTime(
+              searchParams[key]
+            )
+          }
+          let resultKey = `query.${key}`
+          params.PRS[resultKey] = searchParams[key]
         }
       }
       this.getAllPros(params)
@@ -717,13 +762,12 @@ export default {
           size: 999
         }
       }
-      this.Axios
-        .get('/product/productClass', params)
+      this.Axios.get('/product/productClass', params)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
             this.kinds = result.data.list
-            this.kinds.unshift({ id: 'all', className: '全部类别' })
+            this.kinds.unshift({ id: null, className: '全部类别' })
           } else {
             this.$message.error(result.msg)
           }
@@ -733,8 +777,7 @@ export default {
         })
     },
     getAllPromotions() {
-      this.Axios
-        .get('promotion/category')
+      this.Axios.get('promotion/category')
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -751,8 +794,7 @@ export default {
         })
     },
     getCurrentNewtime() {
-      this.Axios
-        .get('/product/product/newTime')
+      this.Axios.get('/product/product/newTime')
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -766,8 +808,7 @@ export default {
         })
     },
     settingNewPro(id) {
-      this.Axios
-        .put(`/product/product/${id}/new`)
+      this.Axios.put(`/product/product/${id}/new`)
         .then(res => {
           let result = res.data
           if (result.code == 0) {
@@ -790,8 +831,8 @@ export default {
     editProduction
   },
   watch: {
-    preViewDialog(val){
-      if(!val){
+    preViewDialog(val) {
+      if (!val) {
         utils.reset(this.$refs.fileInput)
       }
     },
@@ -819,9 +860,15 @@ export default {
       if (!val) {
         this.upAndDown = 1
       }
+    },
+    allProList(val) {
+      val.length > 0 ? (this.pagerStatus = true) : (this.pagerStatus = false)
     }
   },
   computed: {
+    allProList() {
+      return this.allPros.list
+    },
     categoryIds() {
       // 计算过后的推广类别数组
       let result = []
@@ -887,11 +934,6 @@ $base-color = rgb(230, 14, 50)
         flex 1
         .top
           margin-bottom 0.5rem
-          i.checkBoxIcon:after
-            content '\e658'
-          i.checkBoxIconSel:after
-            content '\e657'
-            color $base-color
         .bottom, img
           width 100%
       .rightWrapper

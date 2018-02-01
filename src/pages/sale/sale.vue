@@ -37,28 +37,18 @@
                   <el-button type="primary" @click="toteam_save(add_toteam_data)" size="small">确 定</el-button>
                 </span>
               </el-dialog>
-              <el-button @click="delsaleman(multipleSelection)" :disabled="selectSaleTF" size="small" type="danger" class="del_cust_btn">删除员工</el-button>
+              <el-button @click="delsaleman(selectSaleList)" :disabled="selectSaleTF" size="small" type="danger" class="del_cust_btn">删除员工</el-button>
             </div>
-            <div class="salemans_class">
-              <el-table
-                ref="multipleTable"
-                :data="salemans"
-                tooltip-effect="dark"
-                :show-header = 'false'
-                @row-click = "rowclick"
-                @selection-change="handleSelectionChange"
-                v-loading="loading"
-                >
-                <el-table-column
-                  type="selection" class="salemans_table">
-                </el-table-column>
-                <el-table-column
-                  label="姓名">
-                  <template slot-scope="scope">
-                    <div style="cursor: pointer;">{{scope.row.name}}</div>
-                  </template>
-                </el-table-column>
-              </el-table>
+            <div class="salemans_class" v-loading="loading">
+              <el-menu default-active="2">
+                <el-checkbox-group v-model="selectSaleList" @change="changeSaleList">
+                  <!-- <el-menu-item v-for="(item,ind) in salemans" :key="item.id" :index="ind" @click="rowclick(item.id)" class="saleManMenu"> -->
+                  <!-- <el-menu-item v-for="(item,ind) in salemans" :key="item.id" :index="ind"  class="saleManMenu">
+                    <el-checkbox :label="item.id">&nbsp;</el-checkbox>
+                    <span slot="title">{{item.name}}</span>
+                  </el-menu-item> -->
+                </el-checkbox-group>
+              </el-menu>
             </div>
           </div>
         </el-aside>
@@ -161,9 +151,9 @@
                     <el-input
                       placeholder="请输入关键字搜索"
                       prefix-icon="el-icon-search"
-                    class="search_cust_input" size="small">
+                      class="search_cust_input" size="small">
                     </el-input>
-                    <el-button icon="el-icon-circle-plus" @click="add_newcust_fun" class="cust_add_btn" size="small">添加跟进客户</el-button>
+                    <el-button icon="el-icon-circle-plus" @click="add_newcust_fun" class="cust_add_btn" size="small" :disabled="salemans_data.saler.id == -1">添加跟进客户</el-button>
                       <el-dialog
                       title="添加跟进客户"
                       :visible.sync="add_cust_dialog"
@@ -214,34 +204,33 @@
 
 
 <script>
-const salemans_list = {
-  saler: {
-    id: -1,
-    name: "",
-    nickName: "",
-    jobNumber: "",
-    password: "",
-    gender: "",
-    phone: "",
-    departmentId: "",
-    jobtitleId: "",
-    status: "",
-    teamId: "",
-    accountId: "",
-    companyId: "",
-    createAccountId: "",
-    createTime: ""
-  },
-  customers: ""
-};
 export default {
   data() {
     return {
-      //员工列表
-      salemans: [],
-      //员工信息
-      salemans_data: salemans_list,
-
+      //新建员工初始化数据
+     salemans_list: {
+        saler: {
+          id: -1,
+          name: "",
+          nickName: "",
+          jobNumber: "",
+          password: "",
+          gender: "",
+          phone: "",
+          departmentId: "",
+          jobtitleId: "",
+          status: "",
+          teamId: "",
+          accountId: "",
+          companyId: "",
+          createAccountId: "",
+          createTime: ""
+        },
+        customers: ""
+      },
+      salemans: [],//员工列表
+      saleManOneId:'',//员工列表第一个员工的id
+      salemans_data: {},//员工信息
       custsave_btn_div: false,
       //添加新员工弹出框
       add_customer_dialog: false,
@@ -303,10 +292,10 @@ export default {
       value: "",
       search_name: "", //销售人员输入框
       selectSaleTF: true,
-      multipleSelection: [],
+      selectSaleList: [],//选中销售人员
       selectCustData: [], //选中跟进客户数组
       delCustTF: true, //删除客户按钮禁用
-      loading:true,//网页加载中
+      loading: true //网页加载中
     };
   },
   created() {
@@ -315,23 +304,24 @@ export default {
   methods: {
     create_fun() {
       var self = this;
-      this.Axios
-        .get("/saler/saler")
+      this.Axios.get("/saler/saler")
         .then(data => {
           if (data.data.code == 0) {
             self.salemans = data.data.data;
-            self.loading= false
+            self.loading = false;
             //读取第一个员工的信息
             if (self.salemans.length != 0) {
-              this.customer_load(self.salemans[0].id);
+              self.saleManOneId= self.salemans[0].id
+              this.customer_load(self.saleManOneId);
             }
+          }else{
+            self.loading = false;
           }
         })
         .catch(err => {
           this.extCatch(err, this.create_fun);
         });
-      this.Axios
-        .get("/saler/saleTeam")
+      this.Axios.get("/saler/saleTeam")
         .then(data => {
           if (data.data.code == 0) {
             self.allteam_data = data.data.data;
@@ -341,11 +331,11 @@ export default {
           this.extCatch(err, this.create_fun);
         });
     },
-    handleSelectionChange(val) {
+    changeSaleList() {
       var self = this;
-      if (val.length != 0) {
+      // console.log(self.selectSaleList)
+      if (self.selectSaleList.length != 0) {
         self.selectSaleTF = false;
-        self.multipleSelection = val;
       } else {
         self.selectSaleTF = true;
       }
@@ -356,20 +346,20 @@ export default {
       for (var i = 0; i < data.length; i++) {
         delsaleman_list.push(data[i].id);
       }
-      this.Axios
-        .delete("/saler/saler/batch", { params: { ids: delsaleman_list } })
+      this.Axios.delete("/saler/saler/batch", {
+        params: { ids: delsaleman_list }
+      })
         .then(data => {
           if (data.data.code == 0) {
-            this.$notify({
-              title: "成功",
+            this.$message({
               message: data.data.msg,
               type: "success"
             });
             this.create_fun();
           } else {
-            this.$notify.error({
-              title: "错误",
-              message: data.data.msg
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
             });
           }
         })
@@ -378,19 +368,18 @@ export default {
         });
     },
     //点击跟进员工选择事件
-    rowclick(row, event, column) {
-      this.customer_load(row.id);
+    rowclick(elemId) {
+      this.customer_load(elemId);
     },
     //用接口读取员工资料信息
     customer_load(elem) {
       var self = this;
       self.checked_saleman_Id = elem;
       self.custsave_btn_div = false;
-      this.Axios
-        .get("/saler/saler/" + elem)
+      this.Axios.get("/saler/saler/" + elem)
         .then(data => {
           if (data.data.code == 0) {
-            self.salemans_data = [];
+            self.salemans_data = {};
             self.salemans_data = data.data.data;
             self.checked_cust = [];
             if (self.salemans_data.customers != null) {
@@ -409,51 +398,64 @@ export default {
     //修改员工信息
     save_saleman_fun() {
       var self = this;
-      self.salemans_data.customersids = self.checked_newcust;
-
-      var modi_saleman_data = {};
-      //id
-      modi_saleman_data.id = this.salemans_data.saler.id;
-      //姓名
-      modi_saleman_data.name = this.salemans_data.saler.name;
-      //昵称
-      modi_saleman_data.nickName = this.salemans_data.saler.nickName;
-      //电话
-      modi_saleman_data.phone = this.salemans_data.saler.phone;
-      //工号
-      modi_saleman_data.jobNumber = this.salemans_data.saler.jobNumber;
-      //性别
-      modi_saleman_data.gender = this.salemans_data.saler.gender;
-      //组织架构
-      modi_saleman_data.departmentId = this.salemans_data.saler.departmentId;
-      //职位
-      modi_saleman_data.jobtitleId = this.salemans_data.saler.jobtitleId;
-      //创建人id
-      modi_saleman_data.create_account_id = this.salemans_data.saler.createAccountId;
-      //密码
-      modi_saleman_data.password = this.salemans_data.saler.password;
-      //跟进客户id数组
-      modi_saleman_data.customersids = self.salemans_data.customersids;
-      // console.log(modi_saleman_data);
-      let params = {
-        modi_saleman_data
-      };
-      this.Axios
-        .put("/saler/saler", modi_saleman_data)
-        .then(data => {
-          if (data.data.code == 0) {
-            //修改后销售人员列表更新
-            self.salemans = data.data.data;
-          }
-        })
-        .catch(err => {
-          this.extCatch(err, this.save_saleman_fun);
-        });
+      // console.log(self.salemans_data.saler.id)
+      if(self.salemans_data.saler.id != -1){
+        self.salemans_data.customersids = self.checked_newcust;
+        var modi_saleman_data = {};
+        //id
+        modi_saleman_data.id = this.salemans_data.saler.id;
+        //姓名
+        modi_saleman_data.name = this.salemans_data.saler.name;
+        //昵称
+        modi_saleman_data.nickName = this.salemans_data.saler.nickName;
+        //电话
+        modi_saleman_data.phone = this.salemans_data.saler.phone;
+        //电话
+        modi_saleman_data.teamId = this.salemans_data.saler.teamId;
+        //工号
+        modi_saleman_data.jobNumber = this.salemans_data.saler.jobNumber;
+        //性别
+        modi_saleman_data.gender = this.salemans_data.saler.gender;
+        //组织架构
+        modi_saleman_data.departmentId = this.salemans_data.saler.departmentId;
+        //职位
+        modi_saleman_data.jobtitleId = this.salemans_data.saler.jobtitleId;
+        //创建人id
+        modi_saleman_data.create_account_id = this.salemans_data.saler.createAccountId;
+        //密码
+        modi_saleman_data.password = this.salemans_data.saler.password;
+        //跟进客户id数组
+        modi_saleman_data.customersids = self.salemans_data.customersids;
+        // console.log(modi_saleman_data);
+        let params = {
+          modi_saleman_data
+        };
+        this.Axios.put("/saler/saler", modi_saleman_data)
+          .then(data => {
+            if (data.data.code == 0) {
+              //修改后销售人员列表更新
+              self.salemans = data.data.data;
+              this.$message({
+                message: data.data.msg,
+                type: "success"
+              });
+            } else {
+              this.$message({
+                message: data.data.msg,
+                type: "warning"
+              });
+            }
+          })
+          .catch(err => {
+            this.extCatch(err, this.save_saleman_fun);
+          });
+      }
     },
     //添加新员工按钮
     add_customer() {
       var self = this;
-      self.salemans_data = salemans_list;
+      self.salemans_data = self.salemans_list;
+      self.salemans_data.customersids = [];
       self.custsave_btn_div = true;
       //跟进客户列表
       self.customers_data = [];
@@ -462,22 +464,30 @@ export default {
     //添加到团队按钮
     add_toteam_fun() {
       var self = this;
-      // console.log(self.multipleSelection);
-      if (self.multipleSelection.length != 0) {
+      // console.log(self.selectSaleList);
+      if (self.selectSaleList.length != 0) {
         self.add_toteam_dialog = true;
-        this.Axios
-          .get("/saler/saleTeam")
+        this.Axios.get("/saler/saleTeam")
           .then(data => {
             if (data.data.code == 0) {
               self.allteam_data = data.data.data;
+              this.$message({
+                message: data.data.msg,
+                type: "success"
+              });
+            } else {
+              this.$message({
+                message: data.data.msg,
+                type: "warning"
+              });
             }
           })
           .catch(err => {
             this.extCatch(err, this.add_toteam_fun);
           });
+        self.salemans_data = self.salemans_list;
       } else {
-        this.$notify({
-          title: "警告",
+        this.$message({
           message: "没有选中的员工！",
           type: "warning"
         });
@@ -488,27 +498,25 @@ export default {
       var self = this;
       self.add_toteam_dialog = false;
       self.checked_saleman_data = [];
-      for (var i = 0; i < self.multipleSelection.length; i++) {
-        self.checked_saleman_data.push(self.multipleSelection[i].id);
+      for (var i = 0; i < self.selectSaleList.length; i++) {
+        self.checked_saleman_data.push(self.selectSaleList[i].id);
       }
       let params = {
         id: value,
         salers: self.checked_saleman_data
       };
-      this.Axios
-        .post("/saler/saleTeam/salers", params)
+      this.Axios.post("/saler/saleTeam/salers", params)
         .then(data => {
           if (data.data.code == 0) {
-            this.$notify({
-              title: "成功",
+            this.$message({
               message: data.data.msg,
               type: "success"
             });
             this.create_fun();
           } else {
-            this.$notify.error({
-              title: "错误",
-              message: data.data.msg
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
             });
           }
         })
@@ -535,8 +543,7 @@ export default {
           customersids: self.checked_cust
         }
       };
-      this.Axios
-        .delete("/saler/saler/customers", params)
+      this.Axios.delete("/saler/saler/customers", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -562,11 +569,11 @@ export default {
     add_newcust_fun() {
       var self = this;
       self.add_cust_dialog = true;
-      this.Axios
-        .get("/saler/saler/customers")
+      this.Axios.get("/saler/saler/customers")
         .then(data => {
           if (data.data.code == 0) {
             self.add_newcust_data = data.data.data;
+
           } else {
             this.$message({
               message: data.data.msg,
@@ -581,12 +588,13 @@ export default {
     //保存跟进客户
     add_newcust_save() {
       var self = this;
+      console.log(self.salemans_data)
+      if(self.salemans_data.saler.id != -1){
       let params = {
         id: self.checked_saleman_Id,
         customersids: self.checked_newcust
       };
-      this.Axios
-        .post("/saler/saler/customers", params)
+      this.Axios.post("/saler/saler/customers", params)
         .then(data => {
           if (data.data.code == 0) {
             self.customers_data = data.data.data;
@@ -598,21 +606,29 @@ export default {
             self.checked_newcust = [];
             self.checked_cust = [];
             self.delCustTF = true;
+            this.$message({
+              message: data.data.msg,
+              type: "success"
+            });
           } else {
-            this.$notify.error({
-              title: "错误",
-              message: data.data.msg
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
             });
           }
         })
         .catch(err => {
           this.extCatch(err, this.add_newcust_save);
         });
+      }else{
+        console.log(self.checked_newcust)
+      }
+
       this.add_cust_dialog = false;
     },
     //添加到团队数据
     add_toteam_change(value) {
-      console.log(value);
+      // console.log(value);
     },
 
     //跟进客户js结束
@@ -629,6 +645,8 @@ export default {
       add_saleman_data.jobNumber = this.salemans_data.saler.jobNumber;
       //性别
       add_saleman_data.gender = this.salemans_data.saler.gender;
+      //团队Id
+      add_saleman_data.teamId = this.salemans_data.saler.teamId;
       //组织架构
       add_saleman_data.departmentId = this.salemans_data.saler.departmentId;
       //职位
@@ -643,20 +661,18 @@ export default {
         customersids.push(this.customers_data[i].id);
       }
       add_saleman_data.customersids = customersids;
-      this.Axios
-        .post("/saler/saler", add_saleman_data)
+      this.Axios.post("/saler/saler", add_saleman_data)
         .then(data => {
           if (data.data.code == 0) {
-            this.$notify({
-              title: "成功",
+            this.$message({
               message: data.data.msg,
               type: "success"
             });
             this.create_fun();
           } else {
-            this.$notify.error({
-              title: "错误",
-              message: data.data.msg
+            this.$message({
+              message: data.data.msg,
+              type: "warning"
             });
           }
         })
@@ -721,6 +737,9 @@ $font-color = #999
       border 1px solid #d9d9d9
       border-top 0
       height 600px
+      overflow-y auto
+      .saleManMenu
+        border-bottom solid 1px #f0f0f0
   .right_subdiv
     border 1px solid #d9d9d9
     width 92%
@@ -735,10 +754,12 @@ $font-color = #999
       .cust_top_rightspan
         float right
         width 575px
+        text-align right
       .cust_add_btn
-        margin-left 110px
+        margin-left 0px
     .search_cust_input
       width 210px
+
     .cust_leftdiv
       color #666
       .input_name

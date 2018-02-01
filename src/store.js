@@ -28,7 +28,7 @@ const state = {
         picker.$emit('pick', date);
       }
     }]
-  },
+  }
 }
 
 // 计算属性

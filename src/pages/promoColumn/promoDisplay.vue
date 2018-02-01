@@ -196,6 +196,17 @@ export default {
         }
       ],
       dispmode_num: "4", //推广类别选中方式
+      options: [//产品分类全部数据
+        {
+          value: "1",
+          label: "全部分类"
+        },
+        {
+          value: "2",
+          label: "类别1"
+        }
+      ],
+      value: "1", //产品分类选中
 
       proChangeVisible: false, //更换产品弹出框
       uploadTF: false, //显示推广产品数据下拉框显示
@@ -405,29 +416,7 @@ export default {
             //推广类别数组添加一个字段是否一级选择
             for (var i in self.promoAllData) {
               self.promoAllData[i].layer = 2; //默认是2级小类
-              // console.log(self.promoAllData[i]);
-              
-              // for (var k in self.checkListDisp) {
-              //   // console.log(self.checkList[k]);
-              //   if (self.checkListDisp[k] == self.promoAllData[i].id) {
-              //     self.promoAllData[i].disabledT = true;
-              //   }
-              // }
-              // if (self.promoAllData[i].categoryList.length != 0) {
-              //   for (var u in self.promoAllData[i].categoryList) {
-              //     for (var k in self.checkListDisp) {
-              //       if (
-              //         self.checkListDisp[k] ==
-              //         self.promoAllData[i].categoryList[u].id
-              //       ) {
-              //         self.promoAllData[i].categoryList[u].disabledT = true;
-              //       }
-              //     }
-              //   }
-              // }
             }
-            // console.log(self.checkList);
-            // console.log(self.promoAllData);
           }
         })
         .catch(err => {
@@ -438,7 +427,6 @@ export default {
     //添加新推广确认事件
     addPromoListFun() {
       var self = this;
-      // console.log(self.promoAllData);
       //选择一级的情况下，过滤掉二级分类的id
       for(var i in self.promoAllData){
         if(self.promoAllData[i].layer == 1){
@@ -447,7 +435,6 @@ export default {
           }
         }
       }
-      // console.log(self.checkList)
 
       let params = {
         categoryIds: self.checkList

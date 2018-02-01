@@ -11,7 +11,10 @@
           <el-input
             placeholder="请输入敏感词搜索"
             prefix-icon="el-icon-search"
-            v-model="wordSearch">
+            v-model="wordSearch"
+            @change="wordSearchFun"
+            class="searchInput"
+            >
           </el-input>
         </div>
         <div class="wordDiv">
@@ -21,7 +24,9 @@
                 type="textarea"
                 :autosize="{ minRows:10,}"
                 placeholder="请输入内容"
-                v-model="wordDisplay">
+                v-model="wordDisplay"
+                @change="editWordFun"
+                >
               </el-input>
             </el-col>
             <el-col :span="8">
@@ -45,7 +50,60 @@ export default {
     this.created_fun();
   },
   methods: {
-    created_fun() {}
+    created_fun() {
+      this.wordSearchFun();
+    },
+    //关键字搜索
+    wordSearchFun() {
+      var self = this;
+      console.log(self.wordSearch);
+      let params = {
+        PRS: {
+          keyword: self.wordSearch
+        }
+      };
+      this.Axios.get("/common/keyword", params)
+        .then(data => {
+          console.log(data.data);
+          // if (data.data.code == 0) {
+          //   console.log(data.data);
+          // }
+        })
+        .catch(err => {
+          this.extCatch(err, this.wordSearchFun);
+        });
+    },
+    //关键字添加
+    editWordFun() {
+      var self = this;
+      
+      if (self.wordDisplay.length != 0) {
+        // console.log(self.wordDisplay);
+        let params = {
+          keyword: self.wordDisplay
+        };
+        console.log(params)
+      this.Axios
+        .post("/common/keyword",params)
+        .then(data => {
+          // if (data.data.code == 0) {
+          //   console.log(data.data.data);
+          //   this.$message({
+          //     message: data.data.msg,
+          //     type: "success"
+          //   });
+          // } else {
+          //   this.$message({
+          //     message: data.data.msg,
+          //     type: "warning"
+          //   });
+          // }
+        }).catch(err => {
+          this.extCatch(err, this.editWordFun);
+        });
+
+      }
+    }
   }
 };
 </script>
@@ -69,13 +127,14 @@ $font-color = #999
     font-size 15px
   .red_font
     color $base-color
+  .searchInput
+    width 320px
   .wordDiv
     margin-top 15px
     .wordTitB
       color $font-color
       font-size 18px
       padding-left 20px
-      
     .wordTit
       color $font-color
       font-size 14px
