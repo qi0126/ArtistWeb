@@ -52,10 +52,12 @@
                       推广名称
                     </span>
                     <el-input v-model="item.name" placeholder="请输入内容" class="speedpromo_txt" size="small" @change="nameChange(item)" :maxlength="6" algin="center"></el-input>
-                    <p @click="imgsetDialog(item)">
-                      <img v-bind:src="fileAddress+item.imageUrl" class="image">
+                    <p @click="imgsetDialog(item)" >
+                      <img v-if="item.imageUrl !=''" v-bind:src="fileAddress+item.imageUrl" class="image">
+                      <img v-else src="/static/imgs/syBg.png" class="image"/>
                     </p>
-                    <p>{{item.categoryName}}</p>
+                    <p v-if="item.categoryName != ''">{{item.categoryName}}</p>
+                    <p v-else class="red_font">还没选择类别</p>
                     <p><el-button size="small" @click="speedPromoOpen(item)" style="width:100%">设置推广类别</el-button></p>
                   </div>
               </div>
@@ -643,6 +645,7 @@ $font-color = #999
     float left
     width 300px
     height 350px
+    margin-bottom 34px
     .speedpromo_bigdiv
       width 100%
       line-height 30px

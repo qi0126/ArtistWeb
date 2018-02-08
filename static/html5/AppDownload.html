@@ -2,28 +2,43 @@
 
 <head>
   <style>
+    body {
+      padding: 0;
+      margin: 0;
+
+      font-family: "Microsoft Yahei";
+      color: #cf1826;
+      font-size: 24px;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
     .bigDiv {
       position: absolute;
       left: 0px;
       top: 0px;
       width: 100%;
       height: 100%;
-      background-color: #3c4552
+      background: url(image/background.jpg) no-repeat;
+      background-position: center top;
     }
 
     .bigDivImg {
       position: absolute;
       z-index: -1;
-      width: 100%;
-      height: 100%;
+
     }
 
     .smallDiv {
       width: 100%;
-      max-width: 1000px;
-      margin: 100px auto;
-
+      max-width: 1380px;
+      min-width: 1300px;
+      margin: 0 auto;
+      padding-top: 36px;
       display: -webkit-flex;
+      position: relative;
       /* Safari */
       -webkit-flex-flow: row-reverse wrap;
       /* Safari 6.1+ */
@@ -31,64 +46,142 @@
       flex-flow: row-reverse wrap;
     }
 
-    .smallDiv div {
-      width: 50%
+    /* .smallDiv div {
+      width: 33%
+    } */
+
+    .smallCenterDiv {
+      width: 20%;
+      padding-top: 364px;
     }
-    .smallRightDiv{
-      padding-top: 50px;
+
+    .smallRightDiv {
+      width: 35%;
+      padding-top: 364px;
       line-height: 30px;
     }
 
+    .smallCenterCCDiv {
+      background-color: #fff;
+      width: 226px;
+      height: 268px;
+      margin-left: 13px;
+      text-align: center;
+      padding: 6px 4px;
+
+    }
+
+    #qrcode {
+      margin-bottom: 10px
+    }
+
+    .iphoneDiv {
+      text-align: center;
+      width: 32%;
+      padding-top: 184px;
+    }
+
+    #BigDiv_Mobile {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      width: 100%;
+      height: 100%;
+      background: url(image/Background_M.png) no-repeat;
+      background-size: 100% 100%;
+      text-align: center;
+    }
+
+    .mobileLogoDiv {
+      margin-top: 120px;
+    }
+
+    .mobileImgDiv {
+      margin-top: 420px;
+    }
+
+    #arrowDiv {
+      position: absolute;
+      display: none;
+      width: 80%;
+      top: 726px;
+      left: 10%;
+    }
+
   </style>
+  <script type='text/javascript' src='image/jq.js'></script>
+  <script type="text/javascript" src="image/qrcode.js"></script>
   <script type="text/javascript">
+    //接口服务器,部署时需要修改
     var serverUrl = '192.168.16.20:8082'
+    
+    var localUrl = window.location.href
+    var companyId = localUrl.split("?")[3]
 
     function loadJSONDoc() {
-      // var host = location.host;
-      // console.log(host)
-      ajax('http://' + serverUrl + '/platform/appVersion/newVersion', function (data) { //读取a.txt文件里面的内容
-        // alert(str);//将读取的内容输出
+      ajax(`http://${serverUrl}/platform/appVersion/newVersion?companyId=${companyId}`, function (data) {
+        //将读取的内容输出
         var tempObj = JSON.parse(data);
         if (tempObj.code == 0) {
           var tempList = tempObj.data
           var tempUrlObj = {}
           for (var i in tempList) {
-            // console.log(tempList[i])
             if (tempList[i].appType == "Android") {
               tempUrlObj.Android = tempList[i].url
-              console.log(document.getElementById("AndroidA"))
-              document.getElementById("AndroidA").href=tempList[i].url;
+              document.getElementById("AndroidA").href = tempList[i].url;
+              document.getElementById("AndroidD_M").href = tempList[i].url;
             }
             if (tempList[i].appType == "iOS") {
               tempUrlObj.iOS = tempList[i].url
-              document.getElementById("iOSA").href=tempList[i].url;
+              document.getElementById("iOSA").href = tempList[i].url;
+              document.getElementById("iOSD_M").href = tempList[i].url;
             }
           }
-          // console.log(tempUrlObj)
-          // document.getElementById("myDiv").innerHTML = JSON.stringify(tempUrlObj);
 
           //APP下载按钮判断是安卓还是IOS
           var u = navigator.userAgent,
             app = navigator.appVersion;
-          // document.getElementById("appVersion").innerHTML = JSON.stringify(u);
           //android终端或者uc浏览器
           if (u.indexOf('Android') > -1 || u.indexOf('Linux') > -1) {
-            window.location.href = tempUrlObj.Android;
+            // window.location.href = tempUrlObj.Android;
+            document.getElementById("BigDiv_PC").style.display = 'none';
+            document.getElementById("BigDiv_Mobile").style.display = 'block';
+            document.getElementById("AndroidD_M").style.display = 'block';
+            document.getElementById("iOSD_M").style.display = 'none';
           }
           //ios终端
           if (!!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/)) {
-            window.location.href = tempUrlObj.iOS;
+            // window.location.href = tempUrlObj.iOS;
+            document.getElementById("BigDiv_PC").style.display = 'none';
+            document.getElementById("BigDiv_Mobile").style.display = 'block';
+            document.getElementById("AndroidD_M").style.display = 'none';
+            document.getElementById("iOSD_M").style.display = 'block';
           }
           if (u.indexOf('MicroMessenger') > -1) {
             //在微信中打开
-
+            document.getElementById("BigDiv_PC").style.display = 'none';
+            document.getElementById("BigDiv_Mobile").style.display = 'block';
+            document.getElementById("AndroidD_M").style.display = 'block';
+            var tempDOM = document.getElementById("AndroidD_M")
+            tempDOM.onclick = function () {
+              document.getElementById("arrowDiv").style.display = 'block';
+              setTimeout(function () {
+                document.getElementById("arrowDiv").style.display = 'none';
+              }, 1500)
+            }
+            document.getElementById("iOSD_M").style.display = 'block';
           } else {
 
             if (u.indexOf('Windows') > -1) {
               //电脑浏览器打开
+              document.getElementById("BigDiv_PC").style.display = 'block';
+              document.getElementById("BigDiv_Mobile").style.display = 'none';
             } else {
               //手机浏览器打开
-
+              // document.getElementById("arrowDiv").style.display = 'none';
+              // window.location.href = tempUrlObj.Android;
+              // document.getElementById("BigDiv_PC").style.display='none';
+              // document.getElementById("BigDiv_Mobile").style.display='block';
             }
           }
         }
@@ -119,36 +212,77 @@
     //页面读取完再
     window.onload = function () {
       loadJSONDoc()
+      var localURL = window.location.href;
+      $('#qrcode').qrcode({
+        width: 226,
+        height: 226,
+        text: localURL
+      });
+    }
+
+    function overImgIOS(thiselem) {
+      thiselem.src = "image/iOSO.png"
+    }
+
+    function outImgIOS(thiselem) {
+      thiselem.src = "image/iOSD.png"
+    }
+
+    function overImgAndroid(thiselem) {
+      thiselem.src = "image/AndroidO.png"
+    }
+
+    function outImgAndroid(thiselem) {
+      thiselem.src = "image/AndroidD.png"
     }
 
   </script>
 </head>
 
 <body>
-  <div class="bigDiv">
-    <!-- <img src="image/background.jpg" class="bigDivImg" /> -->
+
+  <!-- 移动端 -->
+  <div id="BigDiv_Mobile">
+    <div id="arrowDiv">
+      <img src="image/arrow.png" style="width:100%" />
+    </div>
+    <div class="mobileLogoDiv">
+      <img src="image/logo_m.png" style="width:615px" />
+    </div>
+    <div class="mobileImgDiv">
+      <a id="AndroidD_M">
+        <img src="image/AndroidD_M.png" style="width:540px;" />
+      </a>
+      <br/>
+      <a id="iOSD_M">
+        <img src="image/iOSD_M.png" style="width:540px;margin-top:50px" />
+      </a>
+    </div>
+  </div>
+  <!-- PC端 -->
+  <div class="bigDiv" id="BigDiv_PC" style="display:none">
     <div class="smallDiv">
       <div class="smallRightDiv">
+        <img src="image/logo.png" />
+        <div style="padding:30px 0 39px 0">线上海量精品 随时随地畅想选购</div>
         <a id="AndroidA">
-          <img src="image/download-android.png" />
+          <img src="image/iOSD.png" onmouseover="overImgIOS(this)" onmouseout="outImgIOS(this)" />
         </a>
-        <br/><br/><br/><br/>
         <a id="iOSA">
-          <img src="image/download-ios.png" />
+          <img src="image/AndroidD.png" onmouseover="overImgAndroid(this)" onmouseout="outImgAndroid(this)" />
         </a>
       </div>
-      <div style="text-align:center">
-        <img src="image/iphoneX.png" style="height:500px" />
+      <div class="smallCenterDiv">
+        <div class="smallCenterCCDiv">
+          <div id="qrcode"></div>
+          <div>扫描二维码下载</div>
+        </div>
+
+      </div>
+      <div class="iphoneDiv">
+        <img src="image/iphoneX.png" style="height:577px" />
       </div>
     </div>
-
-    <!-- <div id="appVersion"></div>
-    <br/>
-    <br/>
-    <br/>
-    <br/>
-    <div id="myDiv"></div> -->
-
 
   </div>
 

@@ -35,7 +35,7 @@
       <div class="content">
         <div class="item">
           <span class="text">产品类别：</span>
-          <el-select v-model="submitData.productClassId" @change="kindChange" size="small" style="width:100%">
+          <el-select v-model="submitData.productClassId" @change="kindChange" style="width:100%">
             <el-option
               v-for="kind in allKind.list"
               :key="kind.id"
@@ -47,17 +47,17 @@
         </div>
         <div class="item">
           <span class="text">产品名称：</span>
-          <el-input v-model.trim="submitData.productName" size="small" placeholder="请填写产品名称"></el-input>
+          <el-input v-model.trim="submitData.productName" placeholder="请填写产品名称"></el-input>
           <span class="pointer">*</span>
         </div>
         <div class="item">
           <span class="text">产品编号：</span>
-          <el-input v-model.trim="submitData.productNumber" size="small" placeholder="请填写产品编号"></el-input>
+          <el-input v-model.trim="submitData.productNumber" placeholder="请填写产品编号"></el-input>
           <span class="pointer">*</span>
         </div>
         <div class="item">
           <span class="text">是否上架：</span>
-          <el-select v-model="submitData.productStatus" size="small" style="width:100%">
+          <el-select v-model="submitData.productStatus" style="width:100%">
             <el-option
               v-for="item in putawaySelection"
               :key="item.label"
@@ -69,7 +69,7 @@
         </div>
         <div class="item">
           <span class="text">供应商编号：</span>
-          <el-input v-model.trim="submitData.supplierNumber" size="small" placeholder="请填写供应商编号"></el-input>
+          <el-input v-model.trim="submitData.supplierNumber" placeholder="请填写供应商编号"></el-input>
           <span class="pointer">*</span>
         </div>
         <template v-if="baseInfoLength > 0">
@@ -78,13 +78,12 @@
               <div class="item">
                 <span class="text">{{ item.attrCnName }}：</span>
                 <template v-if="!item.dictDataObject">
-                  <el-input v-model.trim="submitData.productExtend.valueJson[item.id]" size="small" :placeholder="'请填写' + item.attrCnName"></el-input>
+                  <el-input v-model.trim="submitData.productExtend.valueJson[item.id]" :placeholder="'请填写' + item.attrCnName"></el-input>
                 </template>
                 <template v-else>
                   <template v-if="item.dataType == 10 || item.dataType == 20">
                     <el-select
                       v-model="submitData.productExtend.valueJson[item.id]"
-                      size="small"
                       style="width:100%"
                       :placeholder="'请填写' + item.attrCnName">
                       <el-option
@@ -98,7 +97,6 @@
                   <template v-else-if="item.dataType == 110 || item.dataType == 120">
                     <el-select
                       v-model="submitData.productExtend.valueJson[item.id]"
-                      size="small"
                       style="width:100%"
                       multiple
                       filterable
@@ -121,7 +119,7 @@
         </template>
         <div class="proDesc item">
           <span class="text">产品描述：</span>
-          <el-input class="proDescInp" v-model.trim="submitData.productDescribe" size="small" type="textarea" :rows="4" placeholder="请填写对产品的描述"></el-input>
+          <el-input class="proDescInp" v-model.trim="submitData.productDescribe" type="textarea" :rows="4" placeholder="请填写对产品的描述"></el-input>
         </div>
       </div>
     </div>
@@ -136,13 +134,12 @@
             <div class="item">
               <span class="text">{{ item.attrCnName }}：</span>
               <template v-if="!item.dictDataObject">
-                <el-input v-model.trim="submitData.productExtend.valueJson[item.id]" size="small" :placeholder="'请填写' + item.attrCnName"></el-input>
+                <el-input v-model.trim="submitData.productExtend.valueJson[item.id]" :placeholder="'请填写' + item.attrCnName"></el-input>
               </template>
               <template v-else>
                 <template v-if="item.dataType == 10 || item.dataType == 20">
                   <el-select
                     v-model="submitData.productExtend.valueJson[item.id]"
-                    size="small"
                     style="width:100%"
                     :placeholder="'请填写' + item.attrCnName">
                     <el-option
@@ -156,7 +153,6 @@
                 <template v-else-if="item.dataType == 110 || item.dataType == 120">
                   <el-select
                     v-model="submitData.productExtend.valueJson[item.id]"
-                    size="small"
                     style="width:100%"
                     multiple
                     filterable
@@ -438,11 +434,30 @@ export default {
             this.allAttrsBykindId.attrList.forEach(obj => {
               if (obj.attrType == 1) {
                 this.baseInfoLength++
-                // this.$set(this.submitData, obj.id, null)
-                this.$set(this.submitData.productExtend.valueJson, obj.id, '')
+                let resultType = null
+                if(!obj.dictDataObject){
+                  resultType = ''
+                }else{
+                  if(obj.dataType == 10 || obj.dataType == 20){
+                    resultType = ''
+                  }else if(obj.dataType == 110 || obj.dataType == 120){
+                    resultType = []
+                  }
+                }
+                this.$set(this.submitData.productExtend.valueJson, obj.id, resultType)
               } else if (obj.attrType == 2) {
                 this.propertyLength++
-                this.$set(this.submitData.productExtend.valueJson, obj.id, '')
+                let resultType = null
+                if(!obj.dictDataObject){
+                  resultType = ''
+                }else{
+                  if(obj.dataType == 10 || obj.dataType == 20){
+                    resultType = ''
+                  }else if(obj.dataType == 110 || obj.dataType == 120){
+                    resultType = []
+                  }
+                }
+                this.$set(this.submitData.productExtend.valueJson, obj.id, resultType)
               } else if (obj.attrType == 3) {
                 this.specificationLength++
                 this.specificationAttrs.push(obj.id)

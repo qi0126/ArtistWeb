@@ -191,19 +191,21 @@
 
       <el-dialog
         title="设置图片水印"
-        :visible.sync="setWaterMaskDialog">
+        :visible.sync="setWaterMaskDialog"
+        width="20%">
         <div class="settingWaterMark">
           <div class="leftWrapper">
-            <div class="top">
+            <!-- <div class="top">
               <el-checkbox v-model="checkBoxState">开启水印</el-checkbox>
             </div>
             <div class="bottom">
               <img src="static/imgs/syBg.png">
-            </div>
+            </div> -->
           </div>
           <div class="rightWrapper">
             <div class="top">
-              <span class="text">上传水印图片</span>
+              <el-checkbox v-model="checkBoxState" @change="toggleWaterMask">开启水印</el-checkbox>
+              <!-- <span class="text">上传水印图片</span> -->
               <div class="syPlace bt-hover" ref="syBgElement" onClick="syFile.click()">
                 <img :src="syImg">
                 <input type="file" id="syFile" @change="syFile" hidden>
@@ -211,17 +213,17 @@
               <div>设置水印透明度（{{ opacity }}%）</div>
               <el-slider v-model="opacity"></el-slider>
             </div>
-            <div class="middle">
+            <!-- <div class="middle">
               <span class="text">上传底图</span>
               <div class="dtPlace bt-hover" onClick="dtFile.click()">
                 <img :src="dtImg" alt="">
                 <input type="file" id="dtFile" @change="dtFile" hidden>
               </div>
-            </div>
+            </div> -->
             <div class="bottom">
-              <el-button type="primary" size="small" plain>预览</el-button>
-              <el-button type="primary" size="small" plain>取消</el-button>
-              <el-button type="primary" size="small" @click="confirmSy">确定</el-button>
+              <!-- <el-button type="primary" size="small" plain>预览</el-button> -->
+              <!-- <el-button type="primary" size="small" plain>取消</el-button> -->
+              <el-button type="primary" size="small" @click="confirmSy">确 定</el-button>
             </div>
           </div>
         </div>
@@ -364,6 +366,7 @@ import editProduction from '@/components/editProduction/editProduction'
 export default {
   data() {
     return {
+      tempUrl: null,
       proDetailLayer: false,
       pageSizes: [10, 20, 50],
       currentPage: 1,
@@ -420,7 +423,7 @@ export default {
         {
           value: 2,
           label: '已下架'
-        },
+        }
         // {
         //   value: 3,
         //   label: '删除'
@@ -444,8 +447,65 @@ export default {
     }
   },
   methods: {
-    confirmSy(){
-
+    toggleWaterMask() {
+      if (this.checkBoxState) {
+        this.openWaterMask()
+      } else {
+        this.closeWaterMask()
+      }
+    },
+    openWaterMask() {
+      let params ={
+        PRS:{
+          companyId: localStorage.getItem('companyId')
+        }
+      }
+      this.Axios.get(`${this.fileAddress}/image/waterMark`,params).then(res=>{
+        let result = res.data
+        if(result.code == 0){
+          this.setWaterMaskDialog = false
+          this.$message.success('水印开启成功')
+        }else{
+          this.$message.error(result.msg)
+        }
+      }).catch(err=>{
+        this.extCatch(err,this.openWaterMask)
+      })
+    },
+    closeWaterMask() {
+      this.Axios.get(`${this.fileAddress}/image/closeWaterMark`).then(res=>{
+        let result = res.data
+        if(result.code == 0){
+          this.setWaterMaskDialog = false
+          this.$message.success('水印关闭成功')
+        }else{
+          this.$message.error(result.msg)
+        }
+      }).catch(err=>{
+        this.extCatch(err,this.closeWaterMask)
+      })
+    },
+    confirmSy() {
+      let params = {
+        waterImage: this.tempUrl,
+        diaphaneity: this.opacity / 100,
+        x: 20,
+        y: 20,
+        companyId: localStorage.getItem('companyId')
+      }
+      this.Axios.post(`${this.fileAddress}/image/config`, params)
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.setWaterMaskDialog = false
+            this.$message.success('水印设置成功')
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.syFile)
+        })
     },
     refreshProduct() {
       const loading = this.$loading({
@@ -466,6 +526,7 @@ export default {
           }
         })
         .catch(err => {
+          loading.close()
           this.extCatch(err, this.refreshProduct)
         })
     },
@@ -557,15 +618,8 @@ export default {
     },
     syFile(e) {
       utils.commonUpload(this, e, 2, data => {
-        let params = {
-          waterImage: data[0].url,
-          diaphaneity: 0.5,
-          x: 0,
-          y: 0
-        }
-        this.Axios.post('/image/config',params).then(res=>{
-          console.log(res)
-        })
+        this.tempUrl = data[0].url
+        this.syImg = this.fileAddress + data[0].url
       })
     },
     batchDel() {
@@ -934,15 +988,20 @@ $base-color = rgb(230, 14, 50)
         flex 1
         .top
           margin-bottom 0.5rem
-        .bottom, img
-          width 100%
+        .bottom
+          width 600px
+          height 450px
+          img
+            width 100%
       .rightWrapper
-        width 16rem
-        overflow hidden
+        // width 16rem
+        // overflow hidden
         .top
+          width 100%
+          margin 0 auto
           .syPlace
             width 100%
-            height 12rem
+            // height 12rem
             display flex
             justify-content center
             align-items center

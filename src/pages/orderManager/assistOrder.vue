@@ -50,7 +50,7 @@
       <div class="optionPlace">
         <el-button class="item" type="primary" size="small" :disabled="appointStatus" plain @click="appointDialog = true">指派订单</el-button>
         <!-- <el-button class="item" type="primary" size="small" plain>导入订单</el-button> -->
-        <el-button class="item" type="primary" size="small" :disabled="appointStatus">导出订单</el-button>
+        <!-- <el-button class="item" type="primary" size="small" :disabled="appointStatus">导出订单</el-button> -->
       </div>
     </div>
 
@@ -323,6 +323,7 @@ import utils from '@/commons/Batar/utils'
 export default {
   data() {
     return {
+      allHeaderData:[],
       principal: {},
       allSalers: {},
       followId: null,
@@ -609,15 +610,25 @@ export default {
         .ordersProductList
 
       ordersProductList.forEach(pro => {
-        // 【 renderHeader 】
+        // 【 renderHeader 】 
         pro.product.productClass.attrList.forEach(attrObj => {
           if (attrObj.attrType == 2) {
-            if (!this.tempAllAttrs.hasOwnProperty(attrObj.id)) {
-              this.$set(this.tempAllAttrs, [attrObj.id], attrObj.attrCnName)
+            if (!this.tempAllAttrs.hasOwnProperty(attrObj.topAttrId)) {
+              this.$set(
+                this.tempAllAttrs,
+                [attrObj.topAttrId],
+                attrObj.attrCnName
+              )
+              this.allHeaderData.push(attrObj)
             }
           } else if (attrObj.attrType == 3 && attrObj.isCalculate != 1) {
-            if (!this.tempAllAttrs.hasOwnProperty(attrObj.id)) {
-              this.$set(this.tempAllAttrs, [attrObj.id], attrObj.attrCnName)
+            if (!this.tempAllAttrs.hasOwnProperty(attrObj.topAttrId)) {
+              this.$set(
+                this.tempAllAttrs,
+                [attrObj.topAttrId],
+                attrObj.attrCnName
+              )
+              this.allHeaderData.push(attrObj)
             }
           }
         })
@@ -634,97 +645,42 @@ export default {
           // 组装基础信息 + 拓展信息 (静态)
           let baseDataClone = utils.deepClone(baseData)
           let attrJson = pro.attrJson
-          for (let key in this.tempAllAttrs) {
+          this.allHeaderData.forEach(headerAttr=>{
             for (let childKey in attrJson) {
-              if (key == childKey) {
-                baseDataClone[key] = attrJson[childKey]
+              if (headerAttr.id == childKey) {
+                baseDataClone[headerAttr.topAttrId] = attrJson[childKey]
                 break
               } else {
-                baseDataClone[key] = '-'
+                baseDataClone[headerAttr.topAttrId] = '-'
               }
             }
-          }
+          })
           // 组装基础信息 + 拓展信息 + 规格信息 (动态)
           specificationList.forEach(specification => {
-            let baseDataCloneClone = utils.deepClone(baseDataClone)
-            baseDataCloneClone['id'] = specification.id
-            baseDataCloneClone['count'] = specification.count
-            baseDataCloneClone['productWeight'] = specification.productWeight
-            baseDataCloneClone['shipmentWeight'] = specification.shipmentWeight
+            if (specification) {
+              let baseDataCloneClone = utils.deepClone(baseDataClone)
+              baseDataCloneClone['id'] = specification.id
+              baseDataCloneClone['count'] = specification.count
+              baseDataCloneClone['productWeight'] = specification.productWeight
+              baseDataCloneClone['shipmentWeight'] =
+                specification.shipmentWeight
 
-            let specificationObj = specification.specificationJosn
-            for (let key in this.tempAllAttrs) {
-              for (let childKey in specificationObj) {
-                if (key == childKey) {
-                  baseDataCloneClone[key] = specificationObj[childKey]
-                  break
-                } else {
-                  baseDataCloneClone[key] = '-'
+              let specificationObj = specification.specificationJosn
+              this.allHeaderData.forEach(headerAttr=>{
+                for (let childKey in specificationObj) {
+                  if (headerAttr.id == childKey) {
+                    baseDataCloneClone[headerAttr.topAttrId] = specificationObj[childKey]
+                    break
+                  } else {
+                    baseDataCloneClone[headerAttr.topAttrId] = '-'
+                  }
                 }
-              }
+              })
+              this.totalDatas.push(baseDataCloneClone)
             }
-            this.totalDatas.push(baseDataCloneClone)
           })
         }
       })
-
-      // let currentProductData = this.allOrders[this.selOrderIndex]
-      //   .ordersProductList[index]
-
-      // let currentProAttrs = currentProductData.product.productClass.attrList
-      // let attrJsons = currentProductData.attrJson // type = 2(可选数据)
-      // let SpecificationList = currentProductData.detailList // type = 3（规格数据）
-
-      // let baseDataByBody = {
-      //   productName: currentProductData.product.productName,
-      //   productNumber: currentProductData.product.productNumber,
-      //   className: currentProductData.product.productClass.className
-      // }
-
-      // currentProAttrs.forEach(item => {
-      //   let key = item.id
-      //   let value = item.attrCnName
-      //   // renderHeader
-      //   if (item.attrType == 2 || item.attrType == 3) {
-      //     this.$set(this.tempAllAttrs, [key], value)
-      //   }
-      //   // 组装type = 2的数据到singleDataByBody
-      //   if (item.attrType == 2) {
-      //     let id = item.id
-      //     for (let key in attrJsons) {
-      //       if (id == key) {
-      //         baseDataByBody[id] = attrJsons[key]
-      //         break
-      //       } else {
-      //         baseDataByBody[id] = ''
-      //       }
-      //     }
-      //   }
-      // })
-      // // renderBody
-      // if (SpecificationList.length > 0) {
-      //   SpecificationList.forEach(item => {
-      //     let tempObj = {}
-      //     currentProAttrs.forEach(childItem => {
-      //       if (childItem.attrType == 3) {
-      //         let id = childItem.id
-      //         for (let key in item.specificationJosn) {
-      //           if (id == key) {
-      //             tempObj[id] = item.specificationJosn[key]
-      //             break
-      //           } else {
-      //             tempObj[id] = ''
-      //           }
-      //         }
-      //       }
-      //     })
-      //     let singleDataByBody = utils.deepClone(baseDataByBody)
-      //     for (let key in tempObj) {
-      //       singleDataByBody[key] = tempObj[key]
-      //     }
-      //     this.totalDatas.push(singleDataByBody)
-      //   })
-      // }
     },
     getAllOrders(refreshData = false) {
       this.loading = true
@@ -736,7 +692,7 @@ export default {
       }
       let searchParams = utils.deepClone(this.filterKeys)
       for (let key in searchParams) {
-        if (searchParams[key] != null && searchParams[key] != '') {
+        if (searchParams[key] !== null && searchParams[key] !== '') {
           if (key == '_start_createTime') {
             searchParams['_start_createTime'] = utils.formatData(
               searchParams[key]

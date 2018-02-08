@@ -172,6 +172,7 @@
               <el-table
                 :data="tableData"
                 border
+                stripe
                 class="el-table" style="width:98%;"
                 v-if="tableData.length != 0"
                 @selection-change="proSelectionChange"
@@ -196,29 +197,23 @@
                   label="产品名称">
                 </el-table-column>
                 <el-table-column
-                  prop="province"
+                  prop="productClassName"
                   align="center"
                   label="产品分类">
-                  <template slot-scope="scope">
-                    {{scope.row.productClassName}}
-                  </template>
                 </el-table-column>
                 <el-table-column
                   prop="productNumber"
                   align="center"
                   label="产品编号">
                 </el-table-column>
-
                 <el-table-column
-                  prop="zip"
+                  prop="categoryName"
                   align="center"
                   label="所属类别">
-                  <template slot-scope="scope">
-                    {{scope.row.categoryName}}
-                  </template>
                 </el-table-column>
                 <el-table-column
                   align="center"
+                  width="160px"
                   label="操作">
                   <template slot-scope="scope">
                     <el-button @click="editrow(scope.row)" size="small" disabled>编辑</el-button>
@@ -338,28 +333,7 @@ export default {
       //批量移除
       batch_del_dialog: false,
       //添加产品到推广类别全部类别
-      options: [
-        {
-          value: "选项1",
-          label: "黄金糕"
-        },
-        {
-          value: "选项2",
-          label: "双皮奶"
-        },
-        {
-          value: "选项3",
-          label: "蚵仔煎"
-        },
-        {
-          value: "选项4",
-          label: "龙须面"
-        },
-        {
-          value: "选项5",
-          label: "北京烤鸭"
-        }
-      ],
+      options: [], //产品类别
       value: "",
       //添加产品到推广类别输入搜索框
       pro_search: "",
@@ -381,6 +355,7 @@ export default {
       classifySelectId: 0, //产品分类选中的ID
       categoryNameData: {}, //所属类别字段
       categoryIdData: {}, //所属类别ID字段
+      proClassData: [] //产品分类数组
     };
   },
   created() {
@@ -391,8 +366,7 @@ export default {
       var self = this;
       self.pageNum = 1;
       this.clasTree_fun();
-      this.Axios
-        .get("/promotion/category")
+      this.Axios.get("/promotion/category")
         .then(data => {
           // console.log(data.data.data);
           self.category_odata = data.data.data;
@@ -408,6 +382,17 @@ export default {
               self.categoryLoadTF = false;
             }
           }
+          let params = {
+            PRS: {
+              size: 999
+            }
+          };
+          this.Axios.get("/product/productClass", params).then(res => {
+            if (res.data.code == 0) {
+              // console.log(data.data.data);
+              self.proClassData = res.data.data.list;
+            }
+          });
         })
         .catch(err => {
           this.extCatch(err, this.create_fun);
@@ -415,8 +400,7 @@ export default {
     },
     //产品分类tree数据
     clasTree_fun() {
-      this.Axios
-        .get("/product/productClass/tree")
+      this.Axios.get("/product/productClass/tree")
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data);
@@ -464,8 +448,10 @@ export default {
       };
       // console.log(self.categorySelectData);
 
-      this.Axios
-        .get("/promotion/category/" + self.categorySelectData.id, params)
+      this.Axios.get(
+        "/promotion/category/" + self.categorySelectData.id,
+        params
+      )
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data.total)
@@ -501,16 +487,19 @@ export default {
           ids: elem
         }
       };
-      this.Axios
-        .get("/product/product/batch/base", params)
+      this.Axios.get("/product/product/batch/base", params)
         .then(data => {
           if (data.data.code == 0) {
-            // console.log(data.data.data);
             self.tableData = data.data.data;
             for (var i = 0; i < self.tableData.length; i++) {
               var tempId = self.tableData[i].id;
               self.tableData[i].categoryName = self.categoryNameData[tempId];
               self.tableData[i].categoryId = self.categoryIdData[tempId];
+              for(var j in self.proClassData){
+                if(self.proClassData[j].id == self.tableData[i].productClassId){
+                  self.tableData[i].productClassName = self.proClassData[j].className;
+                }
+              }
             }
           } else {
             this.$message({
@@ -541,8 +530,7 @@ export default {
         categoryName: self.add_promo_name,
         parentId: 0
       };
-      this.Axios
-        .post("/promotion/category", params)
+      this.Axios.post("/promotion/category", params)
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data);
@@ -572,8 +560,7 @@ export default {
         categoryName: self.add_twopromo_name,
         parentId: self.select_index
       };
-      this.Axios
-        .post("/promotion/category", params)
+      this.Axios.post("/promotion/category", params)
         .then(data => {
           if (data.data.code == 0) {
             self.add_twopromo_name = "";
@@ -680,8 +667,7 @@ export default {
           size: size
         }
       };
-      this.Axios
-        .get("/product/product", params)
+      this.Axios.get("/product/product", params)
         .then(data => {
           if (data.data.code == 0) {
             self.productData = self.productData.concat(data.data.data.list);
@@ -712,8 +698,7 @@ export default {
           productIds: [elem.id]
         }
       };
-      this.Axios
-        .delete("/promotion/category/product", params)
+      this.Axios.delete("/promotion/category/product", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({
@@ -747,8 +732,7 @@ export default {
           productIds: tempProList
         }
       };
-      this.Axios
-        .delete("/promotion/category/product", params)
+      this.Axios.delete("/promotion/category/product", params)
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data);
@@ -796,8 +780,7 @@ export default {
         productIds: tempProList,
         id: self.checkedCarId
       };
-      this.Axios
-        .put("/promotion/category/adjustCategory", params)
+      this.Axios.put("/promotion/category/adjustCategory", params)
         .then(data => {
           if (data.data.code == 0) {
             // console.log(data.data.data);
@@ -827,8 +810,7 @@ export default {
         productIds: self.checkProList
       };
 
-      this.Axios
-        .post("/promotion/category/product", params)
+      this.Axios.post("/promotion/category/product", params)
         .then(data => {
           if (data.data.code == 0) {
             this.$message({

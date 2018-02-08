@@ -6,7 +6,7 @@
             <el-breadcrumb-item>发现内容</el-breadcrumb-item>
         </el-breadcrumb>
         <el-button type="primary" plain @click="addfind_btn" size="small">新增内容</el-button>
-        <div class="text">提示：ppt文档支持 pptl、pptx格式，word文档支持 docl、docx格式，视频支持 mkv、ogg、wmv、mp4、mpg格式！</div>
+        <div class="text">提示：ppt文档支持 pptl、pptx格式，word文档支持 docl、docx格式，视频支持 mkv、ogg、mp4、mpg格式！</div>
         <br/><br/>
         <div>
             <el-table
@@ -14,6 +14,7 @@
             height="750"
             border
             v-loading="loading"
+            stripe
             style="width: 100%">
               <el-table-column
                 prop="createTime"
@@ -84,6 +85,7 @@
                 align="center"
                 header-align="center"
                 fixed="right"
+                width="190px"
                 label="操作">
                 <template slot-scope="scope">
                   <span v-if="scope.row.upType == '0' || scope.row.upType == '1'">
@@ -105,7 +107,6 @@
               title="预览"
               :visible.sync="previewDialog"
               width="960px">
-              <!-- {{selectIdData.upType}}<br/> -->
               <!-- 链接网址 -->
               <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 0"/>
               <!-- 视频文件 -->
@@ -114,12 +115,7 @@
                   您的浏览器不支持 video 标签。
                 </video>
               </div>
-              <!-- word文档 -->
-              <!-- <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 2"/> -->
-              <!-- ppt文件 -->
-              <!-- <iframe :src="selectIdData.contentUrl" style="width: 900px; height: 600px;text-align:center" v-if="selectIdData.upType == 3"/> -->
               <br/>
-              <!-- <span>{{selectIdData.contentUrl}}</span> -->
               <span slot="footer" class="dialog-footer">
                 <el-button type="primary" @click="previewDialog = false" size="small">关 闭</el-button>
               </span>

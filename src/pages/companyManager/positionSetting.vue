@@ -476,6 +476,18 @@ export default {
     }
   },
   methods: {
+    getMenus(){
+      this.Axios.get('/account/menu').then(res=>{
+        let result = res.data
+        if(result.code == 0){
+          // this.allJurisdiction = result.data.menu
+        }else{
+          this.$message.error(result.msg)
+        }
+      }).catch(err=>{
+        this.extCatch(err,this.getMenus)
+      })
+    },
     filterNode(value, data) {
       if (!value) return true
       return data.name.indexOf(value) !== -1
@@ -720,7 +732,7 @@ export default {
         this.disablePositions = true
       } else if (data.type == 2) {
         this.disablePositions = false
-        this.$message.success('您点击了职位')
+        // this.$message.success('您点击了职位')
       }
     },
     selNav(index) {
@@ -1017,6 +1029,7 @@ export default {
 
     this._monitorScroll()
     this._initGetHeights()
+    this.getMenus()
   },
   watch: {
     createCompanyDig(val) {

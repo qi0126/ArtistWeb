@@ -10,7 +10,8 @@
         <div>
           <el-tabs type="border-card" v-if="companyAllData.length !=0">
             <el-tab-pane v-for="item in companyAllData" :key="item.id">
-              <span slot="label"><i class="el-icon-date"></i> {{item.name}}</span>
+              <span slot="label" @click="companyClick(item)">
+                <i class="el-icon-date"></i> {{item.name}}</span>
               {{item.name}}
             </el-tab-pane>
           </el-tabs>
@@ -35,15 +36,18 @@ export default {
       this.Axios.get("/company/company")
         .then(data => {
           if (data.data.code == 0) {
-            console.log(data.data.data);
             self.companyAllData = data.data.data
-            // self.companyAllData = []
+            self.companyClick(self.companyAllData[0])
           }
         })
         .catch(err => {
           this.extCatch(err, this.create_fun);
         });
-    }
+    },
+    //公司选项卡选择事件
+    companyClick(elem){
+      console.log(elem.name)
+    },
   }
 }
 </script>

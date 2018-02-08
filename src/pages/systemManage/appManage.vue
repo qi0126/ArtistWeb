@@ -55,7 +55,8 @@
             <el-table-column
               prop="upgrade"
               label="是否强制升级"
-              align="center">
+              align="center"
+              width="140px">
               <template slot-scope="scope">
                 <el-radio v-model="scope.row.isForce" :label="true">是</el-radio>
                 <el-radio v-model="scope.row.isForce" :label="false">否</el-radio>
@@ -87,7 +88,8 @@
             <el-table-column
               prop="operate"
               label="操作"
-              align="center">
+              align="center"
+              width="180px">
               <template slot-scope="scope">
                 <el-button size="small" @click="cancel(scope.row)">取 消</el-button>
                 <el-button size="small" type="primary" @click="submit(scope.row)" :disabled="scope.row.url.length == 0 || scope.row.version.length == 0 || scope.row.updateContent.length == 0">发 布</el-button>
@@ -150,6 +152,7 @@
             border
             style="width: 100%"
             size="small"
+            stripe
             >
             <el-table-column
               type="index"
@@ -169,7 +172,9 @@
             <el-table-column
               prop="url"
               label="地址"
-              align="center">
+              align="center"
+              width="400px"
+              >
             </el-table-column>
             <el-table-column
               label="强制升级"
@@ -371,17 +376,17 @@ export default {
             }
             for (var j in data.data.data) {
               if (self.imgData.length < 6) {
-                var addTF = true;//可以添加引导图
+                var addTF = true; //可以添加引导图
                 for (var k in self.imgData) {
                   if (self.imgData[k] == data.data.data[j].url) {
-                    addTF = false;//如果有重复的图将不能被添加
+                    addTF = false; //如果有重复的图将不能被添加
                   }
                 }
                 if (addTF) {
                   self.imgData.push(data.data.data[j].url);
                 } else {
                   this.$message({
-                    message: '引导图不能重复，重复的图将不能被添加！',
+                    message: "引导图不能重复，重复的图将不能被添加！",
                     type: "warning"
                   });
                 }
@@ -442,13 +447,16 @@ export default {
         return false;
       }
       if (elem.id == -1) {
+        var lStorage = window.localStorage;
+        console.log(lStorage);
         let params = {
           appType: elem.appType, //app平台
           version: elem.version, //app版本
           url: elem.url, //app地址
           isForce: elem.isForce, //app是否强制更新
           images: elem.appversionImages, //app引导页图片
-          updateContent: elem.updateContent //app
+          updateContent: elem.updateContent, //app发布内容
+          platformCustomerId: lStorage.companyId //公司ID
         };
 
         this.Axios.post("/platform/appVersion", params)
@@ -494,28 +502,28 @@ export default {
     //删除历史发布版本
     delAppVersion(elem) {
       var self = this;
-      this.$confirm(
-        `确认删除‘${elem.appType}  V${elem.version}’版本吗？`
-      ).then(_ => {
-        this.Axios.delete("/platform/appVersion/" + elem.id)
-          .then(data => {
-            if (data.data.code == 0) {
-              this.$message({
-                message: data.data.msg,
-                type: "success"
-              });
-              self.created_fun();
-            } else {
-              this.$message({
-                message: data.data.msg,
-                type: "warning"
-              });
-            }
-          })
-          .catch(err => {
-            this.extCatch(err, this.delAppVersion);
-          });
-      });
+      this.$confirm(`确认删除‘${elem.appType}  V${elem.version}’版本吗？`).then(
+        _ => {
+          this.Axios.delete("/platform/appVersion/" + elem.id)
+            .then(data => {
+              if (data.data.code == 0) {
+                this.$message({
+                  message: data.data.msg,
+                  type: "success"
+                });
+                self.created_fun();
+              } else {
+                this.$message({
+                  message: data.data.msg,
+                  type: "warning"
+                });
+              }
+            })
+            .catch(err => {
+              this.extCatch(err, this.delAppVersion);
+            });
+        }
+      );
     },
     //分页每页显示几条记录修改
     sizeChange(val) {

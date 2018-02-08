@@ -17,6 +17,15 @@
         <i class="iconfont pwdIcon"></i>
         <input v-model.trim="password" type="password" placeholder="请输入密码" @keyup.enter="login">
       </div>
+      <div class="selCompany">
+        <img
+          class="bt-hover"
+          :class="{'active':tempId == item.id}"
+          v-for="(item,index) in companyList"
+          :key="index"
+          :src="fileAddress + item.logoUrl"
+          @click="selCompany(item.id)"/>
+      </div>
       <button class="btn bt-hover" @click="login">登 录</button>
     </div>
   </div>
@@ -29,37 +38,85 @@ export default {
   data() {
     return {
       accountName: '',
-      password: ''
+      password: '',
+      companyList: [],
+      companyId: null,
+      tempId : null
     }
   },
   methods: {
     login() {
-      let params = {
-        accountName: this.accountName,
-        password: this.password,
-        appId: this.appConfig.appId,
-        companyId: '1' // 测试数据
-      }
-      this.Axios.post('/account/account/login', params).then(res => {
-        let result = res.data
-        let code = result.code
-        if (code == 0) {
-          let tokenObj = result.data.token
-          let accessToken = tokenObj.accessToken
-          let accessTokenExpires = tokenObj.accessTokenExpires
-          let accountId = tokenObj.accountId
-
-          localStorage.setItem('accessToken', accessToken)
-          localStorage.setItem('accountId', accountId)
-          // utils.setCookie('accessToken', accessToken, accessTokenExpires)
-          // utils.setCookie('accountId', accountId, accessTokenExpires)
-
-          this.$router.push({ path: '/index' })
-        } else {
-          this.$message.error(result.msg)
+      if(this.check()){
+        let params = {
+          accountName: this.accountName,
+          password: this.password,
+          appId: this.appConfig.appId,
+          companyId: this.companyId // 测试数据
         }
-      })
+        this.Axios.post('/account/account/login', params).then(res => {
+          let result = res.data
+          let code = result.code
+          if (code == 0) {
+            let tokenObj = result.data.token
+            let accountObj = result.data.account
+
+            let accessToken = tokenObj.accessToken
+            let accountId = accountObj.id
+            let accountName = this.accountName
+            let accountIcon = this.fileAddress + accountObj.icon
+            let companyId = accountObj.companyId
+
+            localStorage.setItem('accessToken', accessToken)
+            localStorage.setItem('accountId', accountId)
+            localStorage.setItem('accountName', accountName)
+            localStorage.setItem('accountIcon', accountIcon)
+            localStorage.setItem('companyId', companyId)
+            // utils.setCookie('accessToken', accessToken, accessTokenExpires)
+            // utils.setCookie('accountId', accountId, accessTokenExpires)
+
+            this.$router.push({ path: '/index' })
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+      }
+    },
+    check(){
+      if(!this.accountName){
+        this.$message.warning('请输入用户名')
+        return false
+      }
+      if(!this.password){
+        this.$message.warning('请输入密码')
+        return false
+      }
+      if(!this.companyId){
+        this.$message.warning('请选择公司')
+        return false
+      }
+      return true
+    },
+    getCompanys() {
+      this.Axios.get('/company/company')
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.companyList = result.data
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getCompanys)
+        })
+    },
+    selCompany(id) {
+      this.tempId = id
+      this.companyId = id
     }
+  },
+  created() {
+    this.getCompanys()
   }
 }
 </script>
@@ -126,6 +183,18 @@ export default {
       width 20%
       height 2.8rem
       border-radius 5px
-      margin-top 3rem
       font-size 1.1rem
+    .selCompany
+      width 50%
+      margin 2rem auto
+      img 
+        opacity .8
+        width 10rem
+        height 3rem
+        border-radius .2rem
+        margin 1rem 
+        box-sizing border-box   
+        &.active
+          opacity 1
+          border 2px solid rgb(230, 14, 50)
 </style>

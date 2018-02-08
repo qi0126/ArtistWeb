@@ -6,8 +6,8 @@
         <span class="title">Artist 后台管理系统</span>
       </div>
       <div class="headerRight">
-        <img src="static/imgs/test2.png" class="noLoginIcon" alt="暂无图片">
-        <span class="accoutName">许文祥</span>
+        <img :src="accountIcon" class="noLoginIcon" alt="暂无图片">
+        <span class="accoutName">{{ accountName }}</span>
         <i class="iconfont outLoginIcon bt-hover" @click="loginOut"></i>
       </div>
     </div>
@@ -57,10 +57,20 @@ export default {
   data() {
     return {
       activeIndex: null,
-      menus: {}
+      menus: {},
+      accountIcon: null,
+      accountName: null
     }
   },
   methods: {
+    getBaseInfo() {
+      localStorage.getItem('accountName')
+        ? (this.accountName = localStorage.getItem('accountName'))
+        : (this.accountName = '暂无')
+      localStorage.getItem('accountIcon')
+        ? (this.accountIcon = localStorage.getItem('accountIcon'))
+        : (this.accountIcon = 'static/imgs/syBg.png')
+    },
     loginOut() {
       this.$confirm('确认退出登录？', '提示', {
         type: 'warning'
@@ -69,9 +79,9 @@ export default {
           this.Axios.get('/account/account/logout')
             .then(res => {
               let result = res.data
-              if(result.code == 0){
+              if (result.code == 0) {
                 utils.goLogin()
-              }else{
+              } else {
                 this.$message.error(result.msg)
               }
             })
@@ -92,24 +102,27 @@ export default {
         this.activeIndex = this.menus.default.menuUrl
       }
     },
-    getMenus(){
-      this.Axios.get('/account/menu').then(res=>{
-        let result = res.data
-        if(result.code == 0){
-          this.menus = result.data
-          this.$nextTick(()=>{
-            this.initPath()
-          })
-        }else{
-          this.$message.error(result.msg)
-        }
-      }).catch(err=>{
-        this.extCatch(err,this.getMenus)
-      })
+    getMenus() {
+      this.Axios.get('/account/menu')
+        .then(res => {
+          let result = res.data
+          if (result.code == 0) {
+            this.menus = result.data
+            this.$nextTick(() => {
+              this.initPath()
+            })
+          } else {
+            this.$message.error(result.msg)
+          }
+        })
+        .catch(err => {
+          this.extCatch(err, this.getMenus)
+        })
     }
   },
   created() {
     this.getMenus()
+    this.getBaseInfo()
   }
 }
 </script>

@@ -5,6 +5,7 @@
           <el-breadcrumb-item>销售管理</el-breadcrumb-item>
           <el-breadcrumb-item>销售人员管理</el-breadcrumb-item>
       </el-breadcrumb>
+      
       <el-container>
         <el-aside class="left_sale_menu" width="320px">
           <div class="topnav leftmenu">
@@ -40,13 +41,13 @@
               <el-button @click="delsaleman(selectSaleList)" :disabled="selectSaleTF" size="small" type="danger" class="del_cust_btn">删除员工</el-button>
             </div>
             <div class="salemans_class" v-loading="loading">
+              <div class="noSalerTxt" v-if="noSalerTxtTF">暂无消售人员，请先添加！</div>
               <el-menu default-active="2">
                 <el-checkbox-group v-model="selectSaleList" @change="changeSaleList">
-                  <!-- <el-menu-item v-for="(item,ind) in salemans" :key="item.id" :index="ind" @click="rowclick(item.id)" class="saleManMenu"> -->
-                  <!-- <el-menu-item v-for="(item,ind) in salemans" :key="item.id" :index="ind"  class="saleManMenu">
+                  <el-menu-item v-for="(item,ind) in salemans" :key="item.id" :index="ind+''"  class="saleManMenu" @click="rowclick(item.id)" >
                     <el-checkbox :label="item.id">&nbsp;</el-checkbox>
                     <span slot="title">{{item.name}}</span>
-                  </el-menu-item> -->
+                  </el-menu-item>
                 </el-checkbox-group>
               </el-menu>
             </div>
@@ -90,7 +91,7 @@
                     所属团队
                   </el-col>
                   <el-col :span="9">
-                    <el-select placeholder="请选择所属团队" v-model="salemans_data.saler.teamId" @blur="save_saleman_fun" size="small" class="inputDiv">
+                    <el-select placeholder="请选择所属团队" v-model="salemans_data.saler.teamId" @change="save_saleman_fun" size="small" class="inputDiv">
                       <el-option
                         v-for="item in allteam_data"
                         :key="item.id"
@@ -208,7 +209,7 @@ export default {
   data() {
     return {
       //新建员工初始化数据
-     salemans_list: {
+      salemans_list: {
         saler: {
           id: -1,
           name: "",
@@ -228,9 +229,30 @@ export default {
         },
         customers: ""
       },
-      salemans: [],//员工列表
-      saleManOneId:'',//员工列表第一个员工的id
-      salemans_data: {},//员工信息
+      salemans: [], //员工列表
+      saleManOneId: "", //员工列表第一个员工的id
+      noSalerTxtTF: false, //没有员工显示“没有销售人员，请添加”
+      salemans_data: {
+        //员工信息
+        saler: {
+          id: -1,
+          name: "",
+          nickName: "",
+          jobNumber: "",
+          password: "",
+          gender: "",
+          phone: "",
+          departmentId: "",
+          jobtitleId: "",
+          status: "",
+          teamId: "",
+          accountId: "",
+          companyId: "",
+          createAccountId: "",
+          createTime: ""
+        },
+        customers: ""
+      },
       custsave_btn_div: false,
       //添加新员工弹出框
       add_customer_dialog: false,
@@ -292,10 +314,10 @@ export default {
       value: "",
       search_name: "", //销售人员输入框
       selectSaleTF: true,
-      selectSaleList: [],//选中销售人员
+      selectSaleList: [], //选中销售人员
       selectCustData: [], //选中跟进客户数组
       delCustTF: true, //删除客户按钮禁用
-      loading: true //网页加载中
+      loading: false //网页加载中
     };
   },
   created() {
@@ -304,17 +326,23 @@ export default {
   methods: {
     create_fun() {
       var self = this;
+      self.loading = true;
       this.Axios.get("/saler/saler")
         .then(data => {
           if (data.data.code == 0) {
             self.salemans = data.data.data;
             self.loading = false;
+            // console.log(self.salemans.length);
             //读取第一个员工的信息
             if (self.salemans.length != 0) {
-              self.saleManOneId= self.salemans[0].id
-              this.customer_load(self.saleManOneId);
+              self.saleManOneId = self.salemans[0].id;
+              self.customer_load(self.saleManOneId);
+              self.noSalerTxtTF = false;
+            } else {
+              self.noSalerTxtTF = true;
+              self.add_customer();
             }
-          }else{
+          } else {
             self.loading = false;
           }
         })
@@ -342,12 +370,8 @@ export default {
     },
     //删除员工
     delsaleman(data) {
-      var delsaleman_list = [];
-      for (var i = 0; i < data.length; i++) {
-        delsaleman_list.push(data[i].id);
-      }
       this.Axios.delete("/saler/saler/batch", {
-        params: { ids: delsaleman_list }
+        params: { ids: data }
       })
         .then(data => {
           if (data.data.code == 0) {
@@ -376,13 +400,14 @@ export default {
       var self = this;
       self.checked_saleman_Id = elem;
       self.custsave_btn_div = false;
+      // console.log(elem);
       this.Axios.get("/saler/saler/" + elem)
         .then(data => {
           if (data.data.code == 0) {
             self.salemans_data = {};
             self.salemans_data = data.data.data;
             self.checked_cust = [];
-            if (self.salemans_data.customers != null) {
+            if (self.salemans_data.customers.length != 0) {
               self.customers_data = self.salemans_data.customers;
               self.customersdata_display = "";
             } else {
@@ -398,8 +423,8 @@ export default {
     //修改员工信息
     save_saleman_fun() {
       var self = this;
-      // console.log(self.salemans_data.saler.id)
-      if(self.salemans_data.saler.id != -1){
+      // console.log(self.salemans_data.saler)
+      if (self.salemans_data.saler.id != -1) {
         self.salemans_data.customersids = self.checked_newcust;
         var modi_saleman_data = {};
         //id
@@ -434,7 +459,19 @@ export default {
           .then(data => {
             if (data.data.code == 0) {
               //修改后销售人员列表更新
-              self.salemans = data.data.data;
+              // self.salemans = data.data.data;
+
+              
+              this.Axios.get("/saler/saler").then(res => {
+                if (res.data.code == 0) {
+                  // alert(res.data.data)
+                  // console.log(res.data.data)
+                  self.salemans = res.data.data;
+                  
+                }
+              });
+              // self.salemans_data = data.data.data;
+              // self.create_fun();
               this.$message({
                 message: data.data.msg,
                 type: "success"
@@ -499,7 +536,7 @@ export default {
       self.add_toteam_dialog = false;
       self.checked_saleman_data = [];
       for (var i = 0; i < self.selectSaleList.length; i++) {
-        self.checked_saleman_data.push(self.selectSaleList[i].id);
+        self.checked_saleman_data.push(self.selectSaleList[i]);
       }
       let params = {
         id: value,
@@ -573,7 +610,6 @@ export default {
         .then(data => {
           if (data.data.code == 0) {
             self.add_newcust_data = data.data.data;
-
           } else {
             this.$message({
               message: data.data.msg,
@@ -588,40 +624,39 @@ export default {
     //保存跟进客户
     add_newcust_save() {
       var self = this;
-      console.log(self.salemans_data)
-      if(self.salemans_data.saler.id != -1){
-      let params = {
-        id: self.checked_saleman_Id,
-        customersids: self.checked_newcust
-      };
-      this.Axios.post("/saler/saler/customers", params)
-        .then(data => {
-          if (data.data.code == 0) {
-            self.customers_data = data.data.data;
-            if (self.customers_data.length == 0) {
-              self.customersdata_display = "此销售人员没有跟进客户！";
+      if (self.salemans_data.saler.id != -1) {
+        let params = {
+          id: self.checked_saleman_Id,
+          customersids: self.checked_newcust
+        };
+        this.Axios.post("/saler/saler/customers", params)
+          .then(data => {
+            if (data.data.code == 0) {
+              self.customers_data = data.data.data;
+              if (self.customers_data.length == 0) {
+                self.customersdata_display = "此销售人员没有跟进客户！";
+              } else {
+                self.customersdata_display = "";
+              }
+              self.checked_newcust = [];
+              self.checked_cust = [];
+              self.delCustTF = true;
+              this.$message({
+                message: data.data.msg,
+                type: "success"
+              });
             } else {
-              self.customersdata_display = "";
+              this.$message({
+                message: data.data.msg,
+                type: "warning"
+              });
             }
-            self.checked_newcust = [];
-            self.checked_cust = [];
-            self.delCustTF = true;
-            this.$message({
-              message: data.data.msg,
-              type: "success"
-            });
-          } else {
-            this.$message({
-              message: data.data.msg,
-              type: "warning"
-            });
-          }
-        })
-        .catch(err => {
-          this.extCatch(err, this.add_newcust_save);
-        });
-      }else{
-        console.log(self.checked_newcust)
+          })
+          .catch(err => {
+            this.extCatch(err, this.add_newcust_save);
+          });
+      } else {
+        console.log(self.checked_newcust);
       }
 
       this.add_cust_dialog = false;
@@ -759,7 +794,6 @@ $font-color = #999
         margin-left 0px
     .search_cust_input
       width 210px
-
     .cust_leftdiv
       color #666
       .input_name
@@ -780,5 +814,10 @@ $font-color = #999
   .addTeamDiv
     .el-col
       height 30px
+  .noSalerTxt
+    color $font-color
+    padding 10px
+    font-size 14px
+    text-align center
 </style>
 

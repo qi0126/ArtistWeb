@@ -262,6 +262,7 @@ export default {
       this.Axios.get("/saler/saleTeam")
         .then(data => {
           if (data.data.code == 0) {
+            self.loading = false;
             self.team_alldata = data.data.data;
             var team_alldata_new = [];
             var team_alldata_subdata = [];
@@ -289,7 +290,7 @@ export default {
             // console.log(self.team_allsubdata)
             self.teamOneId = self.team_allsubdata[0].id
             self.selectMenuOne(self.teamOneId)
-            self.loading = false;
+            
           }
         })
         .catch(err => {

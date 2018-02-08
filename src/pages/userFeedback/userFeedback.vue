@@ -44,7 +44,7 @@
             <el-collapse v-model="activeNames" class="collaBigDiv">
                 <el-collapse-item :name="item.id" class="collaTwoDiv" v-for="item in feedbackData" :key="item.id">
                     <template slot="title">
-                        <div :class="item.status === 2?'collaBlackMenu':'collaRedMenu'">
+                        <div :class="item.status === 1?'collaBlackMenu':'collaRedMenu'">
                             <el-row>
                                 <el-col :span="4">
                                     <div class="collaSubMenu">
@@ -81,7 +81,7 @@
                                 <el-col :span="3">
                                     <div class="collaSubMenuRight">
                                         状态 
-                                        <span :class="[item.status === 2?'':'redFont']">{{item.status === 2?"已处理":"未处理"}}</span>
+                                        <span :class="[item.status === 1?'':'redFont']">{{item.status === 1?"已处理":"未处理"}}</span>
                                     </div>
                                 </el-col>
                             </el-row>
@@ -101,7 +101,7 @@
                             </el-col>
                             <el-col :span="1">
                                 <div class="SubContant">
-                                    <el-button type="primary" size="small" v-if="item.status === 1" @click="submitProblem(item)">提交</el-button>
+                                    <el-button type="primary" size="small" v-if="item.status === 2" @click="submitProblem(item)">提交</el-button>
                                 </div>
                             </el-col>
                         </el-row>
@@ -154,7 +154,7 @@
                                         :autosize="{ minRows: 2, maxRows: 4}"
                                         placeholder="请填写处理意见"
                                         v-model="item.suggest"
-                                        v-if = "item.status === 1">
+                                        v-if = "item.status === 2">
                                     </el-input>
                                     <span v-else>{{item.suggest}}</span>
                                 </div>
@@ -184,11 +184,11 @@ export default {
         },
         {
           value: 1,
-          label: "未处理问题"
+          label: "已处理问题"
         },
         {
           value: 2,
-          label: "已处理问题"
+          label: "未处理问题"
         }
       ],
       selectState: 0, //选择问题数据
@@ -255,7 +255,7 @@ export default {
       pageNum: 1, //页码默认为第1页
       pageSize: 14, //下拉每页显示几条记录
       loadingTxt: "", //下拉加载提示语
-      loading:false,//网页加载中
+      loading: false //网页加载中
     };
   },
   created() {
@@ -264,7 +264,7 @@ export default {
   methods: {
     created_fun() {
       var self = this;
-      self.loading= true;
+      self.loading = true;
       self.FindAllData(0, 0, 0, 0, 1, self.pageSize);
 
       //下拉加载监听事情
@@ -390,14 +390,22 @@ export default {
       this.Axios.get("/common/feedback/list", params)
         .then(data => {
           if (data.data.code == 0) {
-            self.loading = false
+            // console.log(data.data.data)
+            self.loading = false;
             self.feedbackAllData = data.data.data;
             self.feedbackData = data.data.data.list;
-            if (self.pageNum * self.pageSize < self.feedbackAllData.total) {
-              //   console.log(self.pageNum * self.pageSize)
-              self.loadingTxt = "下拉加载数据中...";
+            if (self.feedbackAllData.total == 0) {
+              self.loadingTxt = "用户还没有反馈！";
             } else {
-              self.loadingTxt = "数据已全部加载完成";
+              if (self.pageNum * self.pageSize < self.feedbackAllData.total) {
+                if(self.pageSize < self.feedbackAllData.total){
+                  self.loadingTxt = "";
+                }else{
+                  self.loadingTxt = "下拉加载数据中...";
+                }
+              } else {
+                self.loadingTxt = "数据已全部加载完成";
+              }
             }
           }
         })
@@ -408,7 +416,7 @@ export default {
     //根据条件分页增加数据
     AddAllData(status, appType, procedureType, businessType, page, size) {
       var self = this;
-      self.loading= true;
+      self.loading = true;
       let params = {
         PRS: {
           status: status,
@@ -422,14 +430,22 @@ export default {
       this.Axios.get("/common/feedback/list", params)
         .then(data => {
           if (data.data.code == 0) {
-            self.loading= false;
+            // console.log(data.data.data);
+            self.loading = false;
             var tempData = self.feedbackData.concat(data.data.data.list);
             self.feedbackData = tempData;
-
-            if (self.pageNum * self.pageSize < self.feedbackAllData.total) {
-              self.loadingTxt = "下拉加载数据中...";
+            if (self.feedbackAllData.total == 0) {
+              self.loadingTxt = "用户还没有反馈！";
             } else {
-              self.loadingTxt = "数据已全部加载完成";
+              if (self.pageNum * self.pageSize < self.feedbackAllData.total) {
+                if(self.pageSize < self.feedbackAllData.total){
+                  self.loadingTxt = "";
+                }else{
+                  self.loadingTxt = "下拉加载数据中...";
+                }
+              } else {
+                self.loadingTxt = "数据已全部加载完成";
+              }
             }
           }
         })
@@ -535,10 +551,14 @@ export default {
             // console.log(data.data.data);
             self.feedbackAllData = data.data.data;
             self.feedbackData = data.data.data.list;
-            if (self.pageNum * self.pageSize < self.feedbackAllData.total) {
-              self.loadingTxt = "下拉加载数据中...";
+            if (self.feedbackAllData.total < self.pageSize) {
+              self.loadingTxt = "";
             } else {
-              self.loadingTxt = "数据已全部加载完成";
+              if (self.pageNum * self.pageSize < self.feedbackAllData.total) {
+                self.loadingTxt = "下拉加载数据中...";
+              } else {
+                self.loadingTxt = "数据已全部加载完成";
+              }
             }
 
             this.$message({
@@ -565,46 +585,46 @@ $base-color = rgb(230, 14, 50)
 $font-color = #999
 $backfont-color = #333
 .conBigDiv
-    .hr
-        border-top 1px solid #ddd
-        height 3px
-        margin 24px 0 24px 0
-    .topmenu
-        margin-bottom 20px
+  .hr
+    border-top 1px solid #ddd
+    height 3px
+    margin 24px 0 24px 0
+  .topmenu
+    margin-bottom 20px
+    color $font-color
+  .collaBigDiv
+    .collaTwoDiv
+      box-shadow 2px 8px 6px #F0F0F0
+      border-radius 3px
+      margin-bottom 6px
+      border-left 1px solid #f0f0f0
+      border-top 1px solid #f0f0f0
+      .collaRedMenu
+        border-left 4px solid red
         color $font-color
-    .collaBigDiv
-        .collaTwoDiv
-            box-shadow 2px 8px 6px #F0F0F0
-            border-radius 3px
-            margin-bottom 6px
-            border-left 1px solid #f0f0f0
-            border-top 1px solid #f0f0f0
-            .collaRedMenu
-                border-left 4px solid red
-                color $font-color
-                border-bottom 1px #d8d8d8 solid
-            .collaBlackMenu
-                border-left 4px solid $backfont-color
-                color $font-color
-                border-bottom 1px #d8d8d8 solid
-            .collaContant
-                color $font-color
-                margin-top 20px
-                .SubContant
-                    padding 10px 12px 0px 0
-                .textRight
-                    text-align right
-            .collaSubMenu
-                padding-left 12%
-            .collaSubMenuRight
-                text-align right
-        .loading
-            padding 10px
-            background-color #fff
-            text-align center
-            font-size 14px
-    .redFont
-        color $base-color
-    .blackFont
-        color $backfont-color
+        border-bottom 1px #d8d8d8 solid
+      .collaBlackMenu
+        border-left 4px solid $backfont-color
+        color $font-color
+        border-bottom 1px #d8d8d8 solid
+      .collaContant
+        color $font-color
+        margin-top 20px
+        .SubContant
+          padding 10px 12px 0px 0
+        .textRight
+          text-align right
+      .collaSubMenu
+        padding-left 12%
+      .collaSubMenuRight
+        text-align right
+    .loading
+      padding 10px
+      background-color #fff
+      text-align center
+      font-size 14px
+  .redFont
+    color $base-color
+  .blackFont
+    color $backfont-color
 </style>

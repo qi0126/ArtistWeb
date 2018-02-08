@@ -407,6 +407,8 @@ export default {
       this.Axios.get("/promotion/carousel", params)
         .then(data => {
           if (data.data.code == 0) {
+            self.loading = false;
+            self.fullscreenLoading = false;
             self.carouselData = data.data.data;
             // console.log(self.carouselData.list)
             var imgData
@@ -418,7 +420,6 @@ export default {
             }
             self.proDisplayName();
             self.promoNumber = self.carouselData.total;
-            self.loading = false;
           }
         })
         .catch(err => {
@@ -458,6 +459,7 @@ export default {
             self.promoSourseData = data.data.data;
             self.proDisplayName(); //保存推广类别名称
             self.productLoading = false;
+            self.fullscreenLoading = false;
           }
         })
         .catch(err => {

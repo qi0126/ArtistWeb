@@ -18,6 +18,7 @@
             <el-table
             :data="textData"
             border
+            stripe
             class="el-table">
                 <el-table-column
                 align="center"
@@ -54,7 +55,7 @@
                 label="是否显示">
                 <template slot-scope="scope">
                   <el-radio-group v-model="scope.row.isShow" @change="savedata(scope)">
-                    <el-radio label='1'>是</el-radio>
+                    <el-radio label='1' :disabled="scope.row.showDisabled">是</el-radio>
                     <el-radio label='0'>否</el-radio>
                   </el-radio-group>
                 </template>
@@ -158,6 +159,15 @@ export default {
               self.textAllData = data.data.data;
               self.open_tf = self.textData[0].isOpen;
               for (var i = 0; i < self.textData.length; i++) {
+                if (
+                  self.textData[i].categoryId == null ||
+                  self.textData[i].showText.length == 0
+                ) {
+                  self.textData[i].showDisabled = true;
+                  self.textData[i].isShow = "0";
+                } else {
+                  self.textData[i].showDisabled = false;
+                }
                 self.textData[i].isShow = self.textData[i].isShow.toString();
                 //遍历推广类别
                 for (var j = 0; j < self.categoryData.length; j++) {
@@ -196,7 +206,7 @@ export default {
     //开启文字推广事件
     opentf() {
       var self = this;
-      this.Axios.get("/promotion/generalizeText/show")
+      this.Axios.get("/promotion/generalizeText/num")
         .then(data => {
           if (data.data.code == 0) {
             if (data.data.data.length >= 6) {
@@ -226,6 +236,18 @@ export default {
                 type: "warning"
               });
               self.open_tf = false;
+              let params = {
+                isOpen: false
+              };
+              this.Axios.put("/promotion/generalizeText/setOpen", params)
+                .then(data => {
+                  if (data.data.code == 0) {
+                    self.created_fun()
+                  } 
+                })
+                .catch(err => {
+                  this.extCatch(err, this.opentf);
+                });
             }
           }
         })
@@ -269,6 +291,24 @@ export default {
     savedata(elem) {
       var self = this;
       var modifydata = self.textData[elem.$index];
+      this.Axios.get("/promotion/generalizeText/num").then(data => {
+        if (data.data.code == 0) {
+          // console.log(data.data.data.length)
+          if(data.data.data.length < 6){
+            self.open_tf = false
+            self.opentf()
+          }
+        }
+      });
+      if (elem.row.showText == "") {
+        elem.row.isShow = "0";
+        elem.row.showDisabled = true;
+        return false;
+      } else {
+        if (elem.row.categoryId != null) {
+          elem.row.showDisabled = false;
+        }
+      }
       let params = {
         id: modifydata.id,
         categoryId: modifydata.categoryId,
@@ -278,6 +318,7 @@ export default {
       this.Axios.put("/promotion/generalizeText/", params)
         .then(data => {
           if (data.data.code == 0) {
+            self.created_fun();
           } else {
             this.$message({
               message: data.data.msg,
@@ -350,7 +391,6 @@ export default {
     //删除文字推广
     deltext(elem) {
       var self = this;
-      console.log(elem.row.showText)
       this.$confirm(`确认删除‘${elem.row.showText}’此文字推广？`).then(_ => {
         let params = {
           PRS: {

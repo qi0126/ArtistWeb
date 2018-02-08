@@ -579,8 +579,9 @@ export default {
                     message: data.data.msg,
                     type: "success"
                   });
+                  self.menuClick(self.selectedMenuElem);
                   self.created_fun();
-                  self.menuClick(data.data.data);
+
                 } else {
                   this.$message({
                     message: data.data.msg,
@@ -617,7 +618,8 @@ export default {
               type: "success"
             });
             self.created_fun();
-            self.menuClick(data.data.data);
+            // console.log(data.data.data)
+            self.menuClick(self.selectedMenuElem);
           } else {
             this.$message({
               message: data.data.msg,

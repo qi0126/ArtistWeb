@@ -56,7 +56,7 @@ export default {
     //关键字搜索
     wordSearchFun() {
       var self = this;
-      console.log(self.wordSearch);
+      // console.log(self.wordSearch);
       let params = {
         PRS: {
           keyword: self.wordSearch
@@ -64,7 +64,7 @@ export default {
       };
       this.Axios.get("/common/keyword", params)
         .then(data => {
-          console.log(data.data);
+          // console.log(data.data);
           // if (data.data.code == 0) {
           //   console.log(data.data);
           // }
@@ -82,7 +82,7 @@ export default {
         let params = {
           keyword: self.wordDisplay
         };
-        console.log(params)
+        // console.log(params)
       this.Axios
         .post("/common/keyword",params)
         .then(data => {

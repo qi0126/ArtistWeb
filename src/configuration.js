@@ -29,6 +29,10 @@ function extCatch(err, func) {
         router.push('/login');
       } else if (errCode == '5') {
         alert('签名错误');
+      } else if (errCode == '6') {
+        router.push('/login');
+      } else {
+        router.push('/login');
       }
     } else if (res.status == 500) {
       alert('操作失败，服务器出错了');
